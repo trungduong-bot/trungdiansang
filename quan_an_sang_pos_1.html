@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POS Quán Ăn Sáng — Hệ Thống Quản Lý</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0f1117;--bg2:#161b22;--bg3:#1c2230;--bg4:#222d3d;
+  --border:#2a3447;--border2:#3a4a62;
+  --text:#e8edf5;--text2:#8fa3bc;--text3:#5a7090;
+  --primary:#3b82f6;--primary2:#2563eb;--primary-glow:rgba(59,130,246,.18);
+  --green:#22c55e;--green2:#16a34a;--green-bg:rgba(34,197,94,.1);
+  --red:#ef4444;--red2:#dc2626;--red-bg:rgba(239,68,68,.1);
+  --amber:#f59e0b;--amber-bg:rgba(245,158,11,.1);
+  --purple:#a855f7;--purple-bg:rgba(168,85,247,.1);
+  --teal:#14b8a6;--teal-bg:rgba(20,184,166,.1);
+  --radius:8px;--radius2:12px;--radius3:16px;
+  --shadow:0 4px 24px rgba(0,0,0,.4);
+  --font:'Be Vietnam Pro',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* LAYOUT */
+.layout{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:220px;min-width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:10}
+.sidebar-logo{padding:18px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sidebar-logo .logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#f59e0b,#ef4444);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.sidebar-logo .logo-text{font-size:13px;font-weight:700;color:var(--text);line-height:1.2}
+.sidebar-logo .logo-sub{font-size:10px;color:var(--text3);font-weight:400}
+.nav{flex:1;overflow-y:auto;padding:8px}
+.nav-section{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;padding:12px 8px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius);cursor:pointer;color:var(--text2);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:2px;text-decoration:none}
+.nav-item:hover{background:var(--bg4);color:var(--text)}
+.nav-item.active{background:var(--primary-glow);color:var(--primary);border:1px solid rgba(59,130,246,.25)}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;opacity:.8}
+.nav-item .badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;font-family:var(--mono)}
+.sidebar-bottom{padding:12px;border-top:1px solid var(--border)}
+.user-card{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg3);border-radius:var(--radius2);cursor:pointer}
+.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--purple));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.user-info .uname{font-size:12px;font-weight:600}
+.user-info .urole{font-size:10px;color:var(--text3)}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
+.topbar-title{font-size:15px;font-weight:700;flex:1}
+.topbar-search{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:6px 12px;width:260px}
+.topbar-search input{background:none;border:none;outline:none;color:var(--text);font-size:13px;font-family:var(--font);width:100%}
+.topbar-search input::placeholder{color:var(--text3)}
+.topbar-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:600;font-family:var(--font);transition:all .15s}
+.topbar-btn:hover{background:var(--primary2);transform:translateY(-1px)}
+.topbar-btn.secondary{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+.topbar-btn.secondary:hover{background:var(--bg4);color:var(--text)}
+.content{flex:1;overflow-y:auto;padding:20px}
+
+/* CARDS */
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:20px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:16px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:16px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;opacity:.08}
+.stat-card.blue::before{background:var(--primary)}
+.stat-card.green::before{background:var(--green)}
+.stat-card.amber::before{background:var(--amber)}
+.stat-card.red::before{background:var(--red)}
+.stat-card .sc-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.stat-card .sc-val{font-size:22px;font-weight:700;color:var(--text);font-family:var(--mono);line-height:1}
+.stat-card .sc-sub{font-size:11px;color:var(--text3);margin-top:4px;display:flex;align-items:center;gap:4px}
+.stat-card .sc-icon{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:16px}
+.stat-card.blue .sc-icon{background:var(--primary-glow);color:var(--primary)}
+.stat-card.green .sc-icon{background:var(--green-bg);color:var(--green)}
+.stat-card.amber .sc-icon{background:var(--amber-bg);color:var(--amber)}
+.stat-card.red .sc-icon{background:var(--red-bg);color:var(--red)}
+
+/* TABLE */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer}
+tbody tr:hover{background:var(--bg3)}
+tbody td{padding:10px 12px;font-size:13px;color:var(--text2);white-space:nowrap}
+tbody td .name{color:var(--text);font-weight:500}
+.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.tag.green{background:var(--green-bg);color:var(--green)}
+.tag.red{background:var(--red-bg);color:var(--red)}
+.tag.amber{background:var(--amber-bg);color:var(--amber)}
+.tag.blue{background:var(--primary-glow);color:var(--primary)}
+.tag.purple{background:var(--purple-bg);color:var(--purple)}
+.tag.teal{background:var(--teal-bg);color:var(--teal)}
+
+/* FORMS */
+.form-row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:12px}
+.form-row.col3{grid-template-columns:repeat(3,1fr)}
+.form-row.col1{grid-template-columns:1fr}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+.form-group input,.form-group select,.form-group textarea{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:border .15s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--primary)}
+.form-group textarea{resize:vertical;height:80px}
+.form-group select option{background:var(--bg3)}
+
+/* POS LAYOUT */
+.pos-layout{display:flex;height:100%;gap:0}
+.pos-left{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.pos-right{width:340px;min-width:320px;background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column}
+
+/* MENU GRID */
+.menu-cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.cat-pill{padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--font)}
+.cat-pill:hover{border-color:var(--border2);color:var(--text)}
+.cat-pill.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.item-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:12px 10px;cursor:pointer;transition:all .15s;text-align:center;position:relative;user-select:none}
+.item-card:hover{border-color:var(--primary);background:var(--bg4);transform:translateY(-2px)}
+.item-card:active{transform:scale(.97)}
+.item-card .ic-img{width:56px;height:56px;border-radius:10px;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:26px;background:var(--bg4)}
+.item-card .ic-img img{width:100%;height:100%;object-fit:cover;border-radius:10px}
+.item-card .ic-name{font-size:12px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:3px}
+.item-card .ic-price{font-size:12px;color:var(--primary);font-family:var(--mono);font-weight:600}
+.item-card .ic-cat{font-size:10px;color:var(--text3);margin-top:3px}
+.item-card .stock-badge{position:absolute;top:6px;right:6px;font-size:10px;padding:1px 5px;border-radius:4px}
+.item-card .qty-in-cart{position:absolute;top:-6px;left:-6px;width:20px;height:20px;background:var(--primary);color:#fff;border-radius:50%;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;display:none}
+
+/* CART */
+.cart-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.cart-header h3{font-size:14px;font-weight:700}
+.cart-items{flex:1;overflow-y:auto;padding:8px}
+.cart-item{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg3);border-radius:var(--radius);margin-bottom:6px;border:1px solid var(--border)}
+.cart-item .ci-icon{font-size:20px;flex-shrink:0}
+.cart-item .ci-info{flex:1;min-width:0}
+.cart-item .ci-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cart-item .ci-price{font-size:11px;color:var(--primary);font-family:var(--mono)}
+.qty-ctrl{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.qbtn{width:22px;height:22px;border-radius:50%;border:1px solid var(--border2);background:var(--bg4);color:var(--text);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:var(--mono)}
+.qbtn:hover{background:var(--primary);border-color:var(--primary);color:#fff}
+.qnum{width:26px;text-align:center;font-size:13px;font-weight:700;font-family:var(--mono);color:var(--text)}
+.ci-total{font-size:12px;font-weight:700;color:var(--text);font-family:var(--mono);min-width:60px;text-align:right}
+.cart-footer{padding:12px 14px;border-top:1px solid var(--border)}
+.cart-customer{display:flex;gap:6px;margin-bottom:8px}
+.cart-customer input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;color:var(--text);font-size:12px;font-family:var(--font);outline:none}
+.cart-customer button{padding:7px 12px;background:var(--bg4);border:1px solid var(--border);border-radius:var(--radius);color:var(--text2);cursor:pointer;font-size:12px}
+.cart-customer button:hover{border-color:var(--primary);color:var(--primary)}
+.cart-line{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:5px}
+.cart-line .cl-label{color:var(--text2)}
+.cart-line .cl-val{font-family:var(--mono);font-weight:600}
+.cart-total-line{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:6px 0}
+.cart-total-line .ct-label{font-size:13px;font-weight:700}
+.cart-total-line .ct-val{font-size:18px;font-weight:700;color:var(--primary);font-family:var(--mono)}
+.pay-btns{display:flex;gap:6px;margin-top:8px}
+.pay-btn{flex:1;padding:10px 8px;border-radius:var(--radius);border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font);transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px}
+.pay-btn.cash{background:var(--green);color:#fff}
+.pay-btn.cash:hover{background:var(--green2)}
+.pay-btn.card{background:var(--primary);color:#fff}
+.pay-btn.card:hover{background:var(--primary2)}
+.pay-btn.cancel{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+.pay-btn.cancel:hover{border-color:var(--red);color:var(--red)}
+.disc-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.disc-row label{font-size:11px;color:var(--text3);white-space:nowrap}
+.disc-row input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:5px 8px;color:var(--text);font-size:12px;font-family:var(--mono);text-align:center;outline:none;width:60px}
+.note-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:6px 10px;color:var(--text);font-size:12px;font-family:var(--font);outline:none;resize:none;height:44px;margin-bottom:6px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius3);padding:24px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow)}
+.modal.wide{width:760px}
+.modal.sm{width:400px}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+
+/* INVOICE PRINT */
+.invoice-print{font-family:var(--mono);font-size:12px;line-height:1.8;background:var(--bg3);border-radius:var(--radius);padding:16px;margin:12px 0;white-space:pre;overflow-x:auto;color:var(--text)}
+
+/* LOYALTY CARD */
+.loyalty-card{background:linear-gradient(135deg,#1e3a5f,#0f2744);border:1px solid rgba(59,130,246,.3);border-radius:var(--radius3);padding:18px;position:relative;overflow:hidden}
+.loyalty-card::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:radial-gradient(circle,rgba(59,130,246,.2),transparent);border-radius:50%}
+.loyalty-dots{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.ldot{width:24px;height:24px;border-radius:50%;border:2px solid rgba(59,130,246,.3);background:transparent;transition:all .2s}
+.ldot.filled{background:var(--primary);border-color:var(--primary);box-shadow:0 0 8px rgba(59,130,246,.4)}
+.lc-name{font-size:15px;font-weight:700;margin-bottom:2px}
+.lc-phone{font-size:12px;color:#6b9fd4}
+.lc-pts{font-size:28px;font-weight:700;font-family:var(--mono);color:var(--primary)}
+
+/* PAGINATION */
+.pagination{display:flex;align-items:center;gap:6px;margin-top:14px;justify-content:center}
+.page-btn{padding:5px 10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-size:12px;transition:all .15s}
+.page-btn:hover{border-color:var(--primary);color:var(--primary)}
+.page-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
+
+/* CHART */
+.chart-wrap{position:relative;height:240px}
+
+/* TOAST */
+.toast-container{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 16px;border-radius:var(--radius2);font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;animation:slideIn .2s ease;box-shadow:var(--shadow);max-width:300px}
+.toast.success{background:#052e16;border:1px solid var(--green2);color:var(--green)}
+.toast.error{background:#450a0a;border:1px solid var(--red2);color:var(--red)}
+.toast.info{background:#0c1a33;border:1px solid var(--primary2);color:var(--primary)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes fadeOut{to{transform:translateX(110%);opacity:0}}
+
+/* MISC */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.section-header h3{font-size:14px;font-weight:700}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty-state .es-icon{font-size:40px;margin-bottom:10px}
+.empty-state p{font-size:13px}
+.badge-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px}
+.progress-bar{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-top:4px}
+.progress-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.trend-up{color:var(--green)}
+.trend-down{color:var(--red)}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;background:var(--bg4);color:var(--text2)}
+.divider{height:1px;background:var(--border);margin:14px 0}
+.img-upload-area{border:2px dashed var(--border2);border-radius:var(--radius2);padding:20px;text-align:center;cursor:pointer;transition:border .15s}
+.img-upload-area:hover{border-color:var(--primary)}
+.img-upload-area input{display:none}
+.img-preview-wrap{width:72px;height:72px;border-radius:var(--radius);overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:30px}
+.img-preview-wrap img{width:100%;height:100%;object-fit:cover}
+
+/* SCROLLBAR in pos */
+.pos-left::-webkit-scrollbar,.cart-items::-webkit-scrollbar{width:3px}
+.filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.filter-bar input{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 12px;color:var(--text);font-size:13px;font-family:var(--font);outline:none;flex:1;min-width:160px}
+.filter-bar input:focus{border-color:var(--primary)}
+.filter-bar select{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;color:var(--text);font-size:12px;font-family:var(--font);outline:none;cursor:pointer}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-size:13px;font-weight:600;font-family:var(--font);transition:all .15s;text-decoration:none}
+.btn:hover{background:var(--bg4);color:var(--text);border-color:var(--border2)}
+.btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn.primary:hover{background:var(--primary2)}
+.btn.danger{background:var(--red-bg);color:var(--red);border-color:rgba(239,68,68,.25)}
+.btn.success{background:var(--green-bg);color:var(--green);border-color:rgba(34,197,94,.25)}
+.btn.sm{padding:5px 10px;font-size:12px}
+
+/* Report colors */
+.report-block{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:14px;margin-bottom:10px}
+
+@media print{
+  .layout,.sidebar,.topbar{display:none}
+  .invoice-area{display:block!important;font-family:monospace;white-space:pre}
+}
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">🍜</div>
+      <div><div class="logo-text">Quán Ăn Sáng Cô Ba</div><div class="logo-sub">POS v2.0 • SQLite</div></div>
+    </div>
+    <nav class="nav">
+      <div class="nav-section">Chính</div>
+      <a class="nav-item active" onclick="showPage('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Tổng quan
+      </a>
+      <a class="nav-item" onclick="showPage('pos')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Bán hàng (POS)
+      </a>
+
+      <div class="nav-section">Quản lý</div>
+      <a class="nav-item" onclick="showPage('products')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        Hàng hóa
+      </a>
+      <a class="nav-item" onclick="showPage('orders')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>
+        Đơn hàng
+        <span class="badge" id="pending-badge" style="display:none">0</span>
+      </a>
+      <a class="nav-item" onclick="showPage('customers')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Khách hàng
+      </a>
+      <a class="nav-item" onclick="showPage('loyalty')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+        Thẻ tích điểm
+      </a>
+      <a class="nav-item" onclick="showPage('inventory')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Kho hàng
+      </a>
+
+      <div class="nav-section">Báo cáo</div>
+      <a class="nav-item" onclick="showPage('reports')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
+        Báo cáo doanh thu
+      </a>
+      <a class="nav-item" onclick="showPage('expenses')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Chi phí
+      </a>
+
+      <div class="nav-section">Hệ thống</div>
+      <a class="nav-item" onclick="showPage('settings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+        Cài đặt
+      </a>
+      <a class="nav-item" onclick="showPage('database')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        Cơ sở dữ liệu
+      </a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="user-card">
+        <div class="avatar">CB</div>
+        <div class="user-info"><div class="uname">Cô Ba</div><div class="urole">Quản lý</div></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">📊 Tổng quan hôm nay</div>
+      <div class="topbar-search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Tìm kiếm nhanh..." id="global-search" onkeyup="globalSearch(this.value)">
+      </div>
+      <div id="save-indicator" style="font-size:11px;color:var(--green);opacity:0;transition:opacity .5s;display:flex;align-items:center;gap:4px;font-weight:600;white-space:nowrap">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20,6 9,17 4,12"/></svg> Đã lưu
+      </div>
+      <button class="topbar-btn secondary" onclick="exportData()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Xuất SQL
+      </button>
+      <button class="topbar-btn" onclick="showAddProduct()" id="add-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Thêm mới
+      </button>
+    </div>
+    <div class="content" id="content-area"></div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div id="modal-container"></div>
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ===================== DATABASE =====================
+let db;
+const SQL_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.wasm';
+
+// ── IndexedDB helpers (không giới hạn dung lượng, không bị lỗi buffer lớn) ──
+const IDB_NAME = 'pos_quanan', IDB_STORE = 'db_binary', IDB_KEY = 'main';
+
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(IDB_STORE);
+    req.onsuccess = e => res(e.target.result);
+    req.onerror = e => rej(e);
+  });
+}
+
+async function idbLoad() {
+  const idb = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = idb.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(IDB_KEY);
+    req.onsuccess = e => res(e.target.result || null);
+    req.onerror = e => rej(e);
+  });
+}
+
+async function idbSave(buf) {
+  const idb = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = idb.transaction(IDB_STORE, 'readwrite');
+    const req = tx.objectStore(IDB_STORE).put(buf, IDB_KEY);
+    req.onsuccess = () => res();
+    req.onerror = e => rej(e);
+  });
+}
+
+async function idbClear() {
+  const idb = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = idb.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).delete(IDB_KEY);
+    tx.oncomplete = () => res();
+    tx.onerror = e => rej(e);
+  });
+}
+// ──────────────────────────────────────────────────────────────────────────────
+
+let _saveTimer = null;
+function saveDB() {
+  // debounce: gom nhiều run() liên tiếp thành 1 lần ghi
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(async () => {
+    try {
+      const buf = db.export();           // Uint8Array
+      await idbSave(buf);
+      // hiện chỉ thị lưu nhỏ
+      const ind = document.getElementById('save-indicator');
+      if (ind) { ind.style.opacity='1'; setTimeout(()=>ind.style.opacity='0',1200); }
+    } catch(e) { console.error('saveDB error:', e); }
+  }, 300);
+}
+
+async function initDB() {
+  // Hiển thị màn hình loading
+  document.getElementById('content-area').innerHTML =
+    `<div class="empty-state" style="padding:60px 0">
+       <div class="es-icon" style="font-size:48px">⏳</div>
+       <p style="font-size:15px;margin-top:8px">Đang khởi động cơ sở dữ liệu...</p>
+       <p style="font-size:12px;color:var(--text3);margin-top:6px">Vui lòng chờ một chút</p>
+     </div>`;
+
+  const SQL = await initSqlJs({
+    locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`
+  });
+
+  const saved = await idbLoad();   // Uint8Array hoặc null
+  if (saved && saved.byteLength > 0) {
+    db = new SQL.Database(saved);
+    // Kiểm tra schema còn đủ không (trường hợp version cũ)
+    try { db.exec('SELECT id FROM products LIMIT 1'); }
+    catch { db = new SQL.Database(); createSchema(); seedData(); }
+  } else {
+    // Thử migrate từ localStorage cũ nếu có
+    const legacy = localStorage.getItem('pos_db_v2');
+    if (legacy) {
+      try {
+        // Dùng cách decode an toàn, không spread
+        const binStr = atob(legacy);
+        const buf = new Uint8Array(binStr.length);
+        for (let i = 0; i < binStr.length; i++) buf[i] = binStr.charCodeAt(i);
+        db = new SQL.Database(buf);
+        localStorage.removeItem('pos_db_v2'); // xóa bản cũ
+        await idbSave(db.export());
+        toast('✅ Đã chuyển dữ liệu cũ sang IndexedDB!', 'success');
+      } catch {
+        db = new SQL.Database(); createSchema(); seedData();
+      }
+    } else {
+      db = new SQL.Database(); createSchema(); seedData();
+    }
+  }
+  renderDashboard();
+}
+
+function query(sql, params = []) {
+  try {
+    const res = db.exec(sql, params);
+    if (!res.length) return [];
+    return res[0].values.map(row => {
+      const obj = {};
+      res[0].columns.forEach((c, i) => obj[c] = row[i]);
+      return obj;
+    });
+  } catch(e) { console.error(e); return []; }
+}
+
+async function saveDBNow() {
+  if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
+  try {
+    const buf = db.export();
+    await idbSave(buf);
+    const ind = document.getElementById('save-indicator');
+    if (ind) { ind.style.opacity='1'; setTimeout(()=>ind.style.opacity='0',1200); }
+  } catch(e) { console.error('saveDBNow error:', e); }
+}
+
+function run(sql, params = []) {
+  try { db.run(sql, params); saveDB(); return true; }
+  catch(e) { console.error(e); return false; }
+}
+
+function createSchema() {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      color TEXT DEFAULT '#3b82f6',
+      icon TEXT DEFAULT '🍽️',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS products (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT UNIQUE,
+      name TEXT NOT NULL,
+      category_id INTEGER,
+      price REAL NOT NULL DEFAULT 0,
+      cost REAL DEFAULT 0,
+      unit TEXT DEFAULT 'phần',
+      stock INTEGER DEFAULT 999,
+      min_stock INTEGER DEFAULT 5,
+      image TEXT DEFAULT '',
+      description TEXT DEFAULT '',
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(category_id) REFERENCES categories(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS customers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT UNIQUE,
+      name TEXT NOT NULL,
+      phone TEXT UNIQUE,
+      email TEXT DEFAULT '',
+      address TEXT DEFAULT '',
+      birthday TEXT DEFAULT '',
+      points INTEGER DEFAULT 0,
+      total_spent REAL DEFAULT 0,
+      visit_count INTEGER DEFAULT 0,
+      notes TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_code TEXT UNIQUE,
+      customer_id INTEGER,
+      subtotal REAL DEFAULT 0,
+      discount_pct REAL DEFAULT 0,
+      discount_amt REAL DEFAULT 0,
+      tax_pct REAL DEFAULT 0,
+      tax_amt REAL DEFAULT 0,
+      total REAL DEFAULT 0,
+      points_used INTEGER DEFAULT 0,
+      points_earned INTEGER DEFAULT 0,
+      payment_method TEXT DEFAULT 'cash',
+      status TEXT DEFAULT 'completed',
+      note TEXT DEFAULT '',
+      cashier TEXT DEFAULT 'Cô Ba',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(customer_id) REFERENCES customers(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS order_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL,
+      product_id INTEGER NOT NULL,
+      product_name TEXT NOT NULL,
+      price REAL NOT NULL,
+      cost REAL DEFAULT 0,
+      qty INTEGER NOT NULL DEFAULT 1,
+      total REAL NOT NULL,
+      note TEXT DEFAULT '',
+      FOREIGN KEY(order_id) REFERENCES orders(id),
+      FOREIGN KEY(product_id) REFERENCES products(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS expenses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      category TEXT DEFAULT 'Khác',
+      amount REAL NOT NULL,
+      note TEXT DEFAULT '',
+      expense_date TEXT DEFAULT (date('now')),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS inventory_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      product_id INTEGER,
+      type TEXT,
+      qty_change INTEGER,
+      note TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(product_id) REFERENCES products(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    );
+  `);
+  db.run(`INSERT OR IGNORE INTO settings VALUES ('shop_name','Quán Ăn Sáng Cô Ba')`);
+  db.run(`INSERT OR IGNORE INTO settings VALUES ('shop_address','123 Đường Lê Lợi, Q.1, TP.HCM')`);
+  db.run(`INSERT OR IGNORE INTO settings VALUES ('shop_phone','0901 234 567')`);
+  db.run(`INSERT OR IGNORE INTO settings VALUES ('tax_pct','0')`);
+  db.run(`INSERT OR IGNORE INTO settings VALUES ('points_per_vnd','10000')`);
+  db.run(`INSERT OR IGNORE INTO settings VALUES ('points_per_discount','10')`);
+  db.run(`INSERT OR IGNORE INTO settings VALUES ('discount_per_10pts','5')`);
+}
+
+function seedData() {
+  db.run(`INSERT INTO categories(name,color,icon) VALUES
+    ('Phở','#ef4444','🍜'),('Bún','#f59e0b','🍲'),('Bánh mì','#22c55e','🥖'),
+    ('Cơm tấm','#3b82f6','🍛'),('Xôi','#a855f7','🍚'),('Cháo','#14b8a6','🥣'),
+    ('Nước uống','#6366f1','☕')`);
+  db.run(`INSERT INTO products(code,name,category_id,price,cost,unit,stock,image) VALUES
+    ('SP001','Phở bò tái',1,45000,18000,'phần',50,'🍜'),
+    ('SP002','Phở bò chín',1,45000,18000,'phần',50,'🍜'),
+    ('SP003','Phở gà',1,40000,15000,'phần',40,'🍜'),
+    ('SP004','Phở đặc biệt',1,55000,22000,'phần',30,'🍜'),
+    ('SP005','Bún bò Huế',2,40000,16000,'phần',40,'🍲'),
+    ('SP006','Bún riêu cua',2,38000,15000,'phần',35,'🦀'),
+    ('SP007','Bún mọc',2,35000,14000,'phần',30,'🍲'),
+    ('SP008','Bánh mì thịt',3,20000,7000,'cái',80,'🥖'),
+    ('SP009','Bánh mì trứng',3,18000,6000,'cái',80,'🥚'),
+    ('SP010','Bánh mì pate',3,22000,8000,'cái',60,'🥖'),
+    ('SP011','Cơm tấm sườn',4,45000,18000,'phần',40,'🍛'),
+    ('SP012','Cơm tấm bì chả',4,42000,17000,'phần',40,'🍛'),
+    ('SP013','Xôi gà',5,30000,12000,'phần',50,'🍚'),
+    ('SP014','Xôi xéo',5,25000,10000,'phần',50,'🍚'),
+    ('SP015','Cháo trắng',6,20000,7000,'tô',60,'🥣'),
+    ('SP016','Cháo gà',6,28000,10000,'tô',50,'🥣'),
+    ('SP017','Cà phê sữa đá',7,20000,5000,'ly',100,'☕'),
+    ('SP018','Cà phê đen đá',7,15000,4000,'ly',100,'☕'),
+    ('SP019','Trà đá',7,5000,1000,'ly',200,'🧊'),
+    ('SP020','Nước cam tươi',7,25000,8000,'ly',80,'🍊')`);
+  db.run(`INSERT INTO customers(code,name,phone,points,total_spent,visit_count) VALUES
+    ('KH001','Nguyễn Văn An','0901234567',28,1260000,28),
+    ('KH002','Trần Thị Bích','0912345678',45,2000000,45),
+    ('KH003','Lê Hoàng Nam','0987654321',12,540000,12),
+    ('KH004','Phạm Thị Lan','0976543210',8,380000,8),
+    ('KH005','Hoàng Minh Tuấn','0965432109',62,2800000,62)`);
+
+  // Seed historical orders (30 days)
+  const methods = ['cash','card','transfer'];
+  const now = new Date();
+  let orderSeq = 1;
+  for(let d=29; d>=0; d--) {
+    const date = new Date(now);
+    date.setDate(date.getDate()-d);
+    const dateStr = date.toISOString().slice(0,10);
+    const count = 8+Math.floor(Math.random()*15);
+    for(let i=0;i<count;i++) {
+      const codeNum = String(orderSeq).padStart(6,'0');
+      const prodIds = [1,2,3,5,8,11,17,19].sort(()=>Math.random()-.5).slice(0,1+Math.floor(Math.random()*3));
+      const items = query(`SELECT id,name,price,cost FROM products WHERE id IN (${prodIds.join(',')})`);
+      let sub=0;
+      const itemData = items.map(p=>{const q=1+Math.floor(Math.random()*2);sub+=p.price*q;return{...p,qty:q,total:p.price*q};});
+      const disc=Math.random()<.1?5:0;
+      const total=sub*(1-disc/100);
+      const custId=Math.random()<.4?Math.ceil(Math.random()*5):null;
+      const pts=Math.floor(total/10000);
+      const ts=`${dateStr} ${String(6+Math.floor(Math.random()*4)).padStart(2,'0')}:${String(Math.floor(Math.random()*60)).padStart(2,'0')}:00`;
+      db.run(`INSERT INTO orders(order_code,customer_id,subtotal,discount_pct,discount_amt,total,points_earned,payment_method,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)`,
+        [`HD${codeNum}`,custId,sub,disc,sub*disc/100,total,pts,methods[Math.floor(Math.random()*3)],'completed',ts]);
+      const oid=db.exec('SELECT last_insert_rowid() as id')[0].values[0][0];
+      itemData.forEach(it=>db.run(`INSERT INTO order_items(order_id,product_id,product_name,price,cost,qty,total) VALUES (?,?,?,?,?,?,?)`,
+        [oid,it.id,it.name,it.price,it.cost,it.qty,it.total]));
+      orderSeq++;
+    }
+  }
+  db.run(`INSERT INTO expenses(title,category,amount,expense_date,note) VALUES
+    ('Mua nguyên liệu phở','Nguyên liệu',850000,date('now','-1 day'),'Xương, thịt bò, gia vị'),
+    ('Tiền thuê mặt bằng','Cố định',3000000,date('now','-5 day'),'Tháng này'),
+    ('Điện nước','Cố định',450000,date('now','-3 day'),''),
+    ('Lương nhân viên','Nhân công',4500000,date('now','-7 day'),'2 người'),
+    ('Mua rau củ','Nguyên liệu',280000,date('now'),'Rau thơm, hành, ngò'),
+    ('Gas','Tiện ích',320000,date('now','-2 day'),'')`);
+  saveDB();
+}
+
+// ===================== NAVIGATION =====================
+let currentPage = 'dashboard';
+let cart = [];
+let currentCustomer = null;
+
+function showPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  event && event.target.closest('.nav-item') && event.target.closest('.nav-item').classList.add('active');
+  const titles = {
+    dashboard:'📊 Tổng quan hôm nay',pos:'🍜 Bán hàng — POS',products:'📦 Quản lý hàng hóa',
+    orders:'📋 Đơn hàng',customers:'👥 Quản hàng khách hàng',loyalty:'⭐ Thẻ tích điểm',
+    inventory:'📦 Kho hàng',reports:'📈 Báo cáo doanh thu',expenses:'💸 Quản lý chi phí',
+    settings:'⚙️ Cài đặt hệ thống',database:'🗄️ Cơ sở dữ liệu SQL'
+  };
+  document.getElementById('page-title').textContent = titles[page]||page;
+  const addBtnLabels = {
+    products:'+ Thêm món',customers:'+ Thêm khách',orders:'',expenses:'+ Thêm chi phí',
+    dashboard:'',pos:'',reports:'',loyalty:'',inventory:'+ Nhập kho',settings:'',database:''
+  };
+  const addBtn = document.getElementById('add-btn');
+  addBtn.textContent = addBtnLabels[page]||'+ Thêm mới';
+  addBtn.style.display = ['dashboard','pos','reports','loyalty','database','settings','orders'].includes(page)?'none':'flex';
+  addBtn.onclick = {
+    products:showAddProduct,customers:showAddCustomer,expenses:showAddExpense,inventory:showAddInventory
+  }[page]||null;
+
+  const renderers = {
+    dashboard:renderDashboard,pos:renderPOS,products:renderProducts,orders:renderOrders,
+    customers:renderCustomers,loyalty:renderLoyalty,inventory:renderInventory,
+    reports:renderReports,expenses:renderExpenses,settings:renderSettings,database:renderDatabase
+  };
+  (renderers[page]||renderDashboard)();
+}
+
+// ===================== DASHBOARD =====================
+function renderDashboard() {
+  const today = new Date().toISOString().slice(0,10);
+  const stats = query(`SELECT 
+    COUNT(*) as orders,
+    COALESCE(SUM(total),0) as revenue,
+    COALESCE(AVG(total),0) as avg_order,
+    COALESCE(SUM(points_earned),0) as points
+    FROM orders WHERE date(created_at)=? AND status='completed'`,[today])[0];
+  const yesterday = new Date();yesterday.setDate(yesterday.getDate()-1);
+  const yd=yesterday.toISOString().slice(0,10);
+  const ydStats = query(`SELECT COALESCE(SUM(total),0) as revenue,COUNT(*) as orders FROM orders WHERE date(created_at)=? AND status='completed'`,[yd])[0];
+  const topItems = query(`SELECT p.name,p.image,SUM(oi.qty) as sold,SUM(oi.total) as rev FROM order_items oi JOIN products p ON p.id=oi.product_id JOIN orders o ON o.id=oi.order_id WHERE date(o.created_at)=? AND o.status='completed' GROUP BY oi.product_id ORDER BY sold DESC LIMIT 5`,[today]);
+  const weekRevenue = query(`SELECT date(created_at) as day,SUM(total) as rev,COUNT(*) as cnt FROM orders WHERE date(created_at)>=date('now','-6 days') AND status='completed' GROUP BY day ORDER BY day`);
+  const lowStock = query(`SELECT * FROM products WHERE stock<=min_stock AND is_active=1 ORDER BY stock ASC LIMIT 5`);
+  const expenses_today = query(`SELECT COALESCE(SUM(amount),0) as total FROM expenses WHERE expense_date=?`,[today])[0];
+  const profit = (stats.revenue||0) - (expenses_today.total||0);
+
+  const revGrowth = ydStats.revenue>0 ? (((stats.revenue-ydStats.revenue)/ydStats.revenue)*100).toFixed(1) : 0;
+  const ordGrowth = ydStats.orders>0 ? (((stats.orders-ydStats.orders)/ydStats.orders)*100).toFixed(1) : 0;
+
+  const recentOrders = query(`SELECT o.*,COALESCE(c.name,'Khách lẻ') as cust_name FROM orders o LEFT JOIN customers c ON c.id=o.customer_id WHERE date(o.created_at)=? ORDER BY o.id DESC LIMIT 8`,[today]);
+
+  document.getElementById('content-area').innerHTML = `
+  <div class="grid-4">
+    <div class="stat-card blue">
+      <div class="sc-icon">💰</div>
+      <div class="sc-label">Doanh thu hôm nay</div>
+      <div class="sc-val">${fmtK(stats.revenue)}</div>
+      <div class="sc-sub ${revGrowth>=0?'trend-up':'trend-down'}">${revGrowth>=0?'▲':'▼'} ${Math.abs(revGrowth)}% so với hôm qua</div>
+    </div>
+    <div class="stat-card green">
+      <div class="sc-icon">🧾</div>
+      <div class="sc-label">Số đơn hàng</div>
+      <div class="sc-val">${stats.orders}</div>
+      <div class="sc-sub ${ordGrowth>=0?'trend-up':'trend-down'}">${ordGrowth>=0?'▲':'▼'} ${Math.abs(ordGrowth)}% so với hôm qua</div>
+    </div>
+    <div class="stat-card amber">
+      <div class="sc-icon">📊</div>
+      <div class="sc-label">Trung bình / đơn</div>
+      <div class="sc-val">${fmtK(stats.avg_order)}</div>
+      <div class="sc-sub" style="color:var(--text3)">Hôm qua: ${fmtK(ydStats.revenue/(ydStats.orders||1))}</div>
+    </div>
+    <div class="stat-card ${profit>=0?'green':'red'}">
+      <div class="sc-icon">📈</div>
+      <div class="sc-label">Lợi nhuận tạm tính</div>
+      <div class="sc-val">${fmtK(profit)}</div>
+      <div class="sc-sub" style="color:var(--text3)">Chi phí: ${fmtK(expenses_today.total)}</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="section-header"><h3>📈 Doanh thu 7 ngày</h3></div>
+      <div class="chart-wrap"><canvas id="weekChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-header"><h3>🔥 Top món bán chạy hôm nay</h3></div>
+      ${topItems.length ? topItems.map((t,i)=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span style="width:22px;height:22px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${i===0?'var(--amber)':i===1?'var(--text2)':'var(--text3)'};flex-shrink:0">${i+1}</span>
+          <span style="font-size:18px">${t.image||'🍽️'}</span>
+          <span style="flex:1;font-size:13px;font-weight:500;color:var(--text)">${t.name}</span>
+          <span style="font-size:12px;color:var(--text2);font-family:var(--mono)">${t.sold} phần</span>
+          <span style="font-size:12px;font-weight:700;color:var(--primary);font-family:var(--mono)">${fmtVnd(t.rev)}</span>
+        </div>`).join('')
+      : '<div class="empty-state"><div class="es-icon">🍽️</div><p>Chưa có đơn hàng hôm nay</p></div>'}
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="section-header"><h3>🕐 Đơn hàng gần đây</h3><button class="btn sm" onclick="showPage('orders')">Xem tất cả</button></div>
+      ${recentOrders.length ? `
+      <div class="table-wrap"><table>
+        <thead><tr><th>Mã đơn</th><th>Khách</th><th>Tổng tiền</th><th>TT</th><th>Giờ</th></tr></thead>
+        <tbody>${recentOrders.map(o=>`
+          <tr onclick="showOrderDetail(${o.id})">
+            <td><span class="name" style="font-family:var(--mono)">${o.order_code}</span></td>
+            <td>${o.cust_name}</td>
+            <td style="font-family:var(--mono);color:var(--primary)">${fmtVnd(o.total)}</td>
+            <td><span class="tag green">Xong</span></td>
+            <td style="color:var(--text3)">${o.created_at.slice(11,16)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div>` : '<div class="empty-state"><p>Chưa có đơn nào hôm nay</p></div>'}
+    </div>
+    <div class="card">
+      <div class="section-header"><h3>⚠️ Hàng sắp hết kho</h3></div>
+      ${lowStock.length ? lowStock.map(p=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:20px">${p.image||'📦'}</span>
+          <div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--text)">${p.name}</div>
+          <div class="progress-bar" style="width:120px"><div class="progress-fill" style="width:${Math.min(100,(p.stock/p.min_stock)*100)}%;background:${p.stock<=2?'var(--red)':'var(--amber)'}"></div></div></div>
+          <span class="tag ${p.stock<=2?'red':'amber'}">${p.stock} còn</span>
+        </div>`).join('')
+      : '<div style="padding:16px;text-align:center;color:var(--text3);font-size:13px">✅ Hàng hóa đủ kho</div>'}
+    </div>
+  </div>`;
+
+  // Chart
+  setTimeout(()=>{
+    const labels=[];const data=[];
+    for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);labels.push(d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'}));data.push(0);}
+    weekRevenue.forEach(r=>{
+      const d=new Date(r.day);const diff=Math.round((new Date(today)-d)/(86400000));
+      if(diff>=0&&diff<=6) data[6-diff]=r.rev;
+    });
+    const ctx=document.getElementById('weekChart');
+    if(ctx) new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Doanh thu',data,backgroundColor:'rgba(59,130,246,.6)',borderColor:'rgba(59,130,246,1)',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmtK(v),color:'#5a7090'},grid:{color:'rgba(255,255,255,.05)'}},x:{ticks:{color:'#5a7090'},grid:{color:'rgba(255,255,255,.05)'}}}}});
+  },100);
+}
+
+// ===================== POS =====================
+function renderPOS() {
+  const cats = query(`SELECT * FROM categories ORDER BY id`);
+  const products = query(`SELECT p.*,c.name as cat_name FROM products p LEFT JOIN categories c ON c.id=p.category_id WHERE p.is_active=1 ORDER BY p.category_id,p.name`);
+  document.getElementById('content-area').innerHTML = `
+  <div class="pos-layout" style="height:calc(100vh - 52px);margin:-20px">
+    <div class="pos-left">
+      <div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <div style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 12px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Tìm món nhanh..." id="pos-search" oninput="filterPOSItems()" style="background:none;border:none;outline:none;color:var(--text);font-size:13px;font-family:var(--font);width:100%">
+          </div>
+        </div>
+        <div class="menu-cats">
+          <button class="cat-pill active" onclick="filterPOSCat(0,this)">Tất cả</button>
+          ${cats.map(c=>`<button class="cat-pill" onclick="filterPOSCat(${c.id},this)">${c.icon} ${c.name}</button>`).join('')}
+        </div>
+      </div>
+      <div class="items-grid" id="pos-items-grid">
+        ${products.map(p=>itemCardHTML(p)).join('')}
+      </div>
+    </div>
+    <div class="pos-right">
+      <div class="cart-header">
+        <h3>🧾 Đơn hàng <span id="cart-count" style="background:var(--primary);color:#fff;font-size:11px;padding:1px 8px;border-radius:10px;font-family:var(--mono)">0</span></h3>
+        <button class="btn sm danger" onclick="clearCart()">Xóa đơn</button>
+      </div>
+      <div class="cart-items" id="cart-items-list">
+        <div class="empty-state"><div class="es-icon">🛒</div><p>Chọn món để thêm vào đơn</p></div>
+      </div>
+      <div class="cart-footer">
+        <div class="cart-customer">
+          <input type="text" id="cart-phone" placeholder="📱 SĐT khách hàng...">
+          <button onclick="lookupCartCustomer()">Tìm</button>
+        </div>
+        <div id="cart-cust-info" style="display:none;margin-bottom:6px;padding:6px 8px;background:var(--bg3);border-radius:var(--radius);border:1px solid var(--border)">
+          <div style="font-size:12px;font-weight:600;color:var(--text)" id="cart-cust-name"></div>
+          <div style="font-size:11px;color:var(--primary)" id="cart-cust-pts"></div>
+        </div>
+        <textarea class="note-input" id="cart-note" placeholder="Ghi chú đơn hàng..."></textarea>
+        <div class="disc-row">
+          <label>Giảm giá:</label>
+          <input type="number" id="cart-disc" value="0" min="0" max="100" oninput="renderCartTotals()">
+          <span style="font-size:12px;color:var(--text3)">%</span>
+          <label style="margin-left:8px">Thuế:</label>
+          <input type="number" id="cart-tax" value="0" min="0" max="100" oninput="renderCartTotals()">
+          <span style="font-size:12px;color:var(--text3)">%</span>
+        </div>
+        <div class="cart-line"><span class="cl-label">Tạm tính</span><span class="cl-val" id="c-subtotal">0₫</span></div>
+        <div class="cart-line"><span class="cl-label">Giảm giá</span><span class="cl-val" style="color:var(--green)" id="c-discount">- 0₫</span></div>
+        <div class="cart-line"><span class="cl-label">Thuế VAT</span><span class="cl-val" id="c-tax">0₫</span></div>
+        <div class="cart-total-line"><span class="ct-label">TỔNG CỘNG</span><span class="ct-val" id="c-total">0₫</span></div>
+        <div class="pay-btns">
+          <button class="pay-btn cash" onclick="checkout('cash')">💵 Tiền mặt</button>
+          <button class="pay-btn card" onclick="checkout('card')">💳 Thẻ</button>
+          <button class="pay-btn" style="background:var(--teal-bg);color:var(--teal);border:1px solid rgba(20,184,166,.3)" onclick="checkout('transfer')">📲 CK</button>
+        </div>
+        <button class="pay-btn cancel" style="margin-top:4px;width:100%" onclick="printPreview()">🖨️ Xem hóa đơn</button>
+      </div>
+    </div>
+  </div>`;
+  window._posProducts = products;
+  renderCartTotals();
+}
+
+function itemCardHTML(p) {
+  const inCart = cart.find(c=>c.id===p.id);
+  return `<div class="item-card" onclick="addToCart(${p.id})" id="ic-${p.id}">
+    ${inCart?`<div class="qty-in-cart" style="display:flex">${inCart.qty}</div>`:''}
+    <div class="ic-img">${p.image&&p.image.startsWith('http')?`<img src="${p.image}" onerror="this.outerHTML='${p.image||'🍽️'}'">`:p.image||'🍽️'}</div>
+    <div class="ic-name">${p.name}</div>
+    <div class="ic-price">${fmtVnd(p.price)}</div>
+    <div class="ic-cat">${p.cat_name||''}</div>
+    ${p.stock<=5?`<span class="tag amber stock-badge">${p.stock}</span>`:''}
+  </div>`;
+}
+
+function filterPOSCat(catId, el) {
+  document.querySelectorAll('.cat-pill').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  window._posActiveCat = catId;
+  renderPOSGrid();
+}
+
+function filterPOSItems() { renderPOSGrid(); }
+
+function renderPOSGrid() {
+  const search = (document.getElementById('pos-search')||{}).value||'';
+  const catId = window._posActiveCat||0;
+  let items = window._posProducts||[];
+  if(catId) items = items.filter(p=>p.category_id===catId);
+  if(search) items = items.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())||p.code.toLowerCase().includes(search.toLowerCase()));
+  document.getElementById('pos-items-grid').innerHTML = items.map(p=>itemCardHTML(p)).join('');
+}
+
+function addToCart(pid) {
+  const p = (window._posProducts||[]).find(x=>x.id===pid);
+  if(!p) return;
+  const ex = cart.find(x=>x.id===pid);
+  if(ex) ex.qty++;
+  else cart.push({...p,qty:1,note:''});
+  renderCartUI();
+  renderPOSGrid();
+}
+
+function changeQty(pid, d) {
+  const ex = cart.find(x=>x.id===pid);
+  if(!ex) return;
+  ex.qty += d;
+  if(ex.qty<=0) cart = cart.filter(x=>x.id!==pid);
+  renderCartUI();
+  renderPOSGrid();
+}
+
+function renderCartUI() {
+  const list = document.getElementById('cart-items-list');
+  if(!list) return;
+  document.getElementById('cart-count').textContent = cart.reduce((s,c)=>s+c.qty,0);
+  if(!cart.length) {
+    list.innerHTML='<div class="empty-state"><div class="es-icon">🛒</div><p>Chọn món để thêm vào đơn</p></div>';
+  } else {
+    list.innerHTML = cart.map(c=>`
+      <div class="cart-item">
+        <span class="ci-icon">${c.image||'🍽️'}</span>
+        <div class="ci-info">
+          <div class="ci-name">${c.name}</div>
+          <div class="ci-price">${fmtVnd(c.price)}</div>
+        </div>
+        <div class="qty-ctrl">
+          <button class="qbtn" onclick="changeQty(${c.id},-1)">−</button>
+          <span class="qnum">${c.qty}</span>
+          <button class="qbtn" onclick="changeQty(${c.id},1)">+</button>
+        </div>
+        <span class="ci-total">${fmtVnd(c.price*c.qty)}</span>
+      </div>`).join('');
+  }
+  renderCartTotals();
+}
+
+function renderCartTotals() {
+  const sub = cart.reduce((s,c)=>s+c.price*c.qty,0);
+  const disc = parseFloat((document.getElementById('cart-disc')||{}).value||0);
+  const tax = parseFloat((document.getElementById('cart-tax')||{}).value||0);
+  const discAmt = sub*disc/100;
+  const taxAmt = (sub-discAmt)*tax/100;
+  const total = sub - discAmt + taxAmt;
+  const set = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  set('c-subtotal', fmtVnd(sub));
+  set('c-discount', `- ${fmtVnd(discAmt)}`);
+  set('c-tax', fmtVnd(taxAmt));
+  set('c-total', fmtVnd(total));
+}
+
+function lookupCartCustomer() {
+  const phone = document.getElementById('cart-phone').value.trim();
+  if(!phone) return;
+  const cust = query(`SELECT * FROM customers WHERE phone=?`,[phone])[0];
+  if(cust) {
+    currentCustomer = cust;
+    document.getElementById('cart-cust-info').style.display='block';
+    document.getElementById('cart-cust-name').textContent = cust.name;
+    document.getElementById('cart-cust-pts').textContent = `⭐ ${cust.points} điểm tích lũy${cust.points>=10?' • Đủ điều kiện giảm giá 5%':''}`;
+    if(cust.points>=10) { document.getElementById('cart-disc').value=5; renderCartTotals(); }
+    toast(`Xin chào ${cust.name}!`,'info');
+  } else toast('Không tìm thấy khách hàng','error');
+}
+
+function clearCart() { cart=[]; currentCustomer=null; renderCartUI(); const di=document.getElementById('cart-disc');if(di)di.value=0;const ci=document.getElementById('cart-cust-info');if(ci)ci.style.display='none'; }
+
+function checkout(method) {
+  if(!cart.length) { toast('Vui lòng thêm món vào đơn!','error'); return; }
+  const sub = cart.reduce((s,c)=>s+c.price*c.qty,0);
+  const disc = parseFloat((document.getElementById('cart-disc')||{}).value||0);
+  const tax = parseFloat((document.getElementById('cart-tax')||{}).value||0);
+  const note = (document.getElementById('cart-note')||{}).value||'';
+  const discAmt = sub*disc/100;
+  const taxAmt = (sub-discAmt)*tax/100;
+  const total = sub - discAmt + taxAmt;
+  const pts = Math.floor(total/10000);
+  const seq = (query(`SELECT COUNT(*)+1 as n FROM orders`)[0]||{n:1}).n;
+  const code = 'HD'+String(seq).padStart(6,'0');
+  const custId = currentCustomer?currentCustomer.id:null;
+  run(`INSERT INTO orders(order_code,customer_id,subtotal,discount_pct,discount_amt,tax_pct,tax_amt,total,points_earned,payment_method,status,note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+    [code,custId,sub,disc,discAmt,tax,taxAmt,total,pts,method,'completed',note]);
+  const oid = db.exec('SELECT last_insert_rowid() as id')[0].values[0][0];
+  cart.forEach(c=>run(`INSERT INTO order_items(order_id,product_id,product_name,price,cost,qty,total) VALUES (?,?,?,?,?,?,?)`,
+    [oid,c.id,c.name,c.price,c.cost||0,c.qty,c.price*c.qty]));
+  if(custId) {
+    run(`UPDATE customers SET points=points+?,total_spent=total_spent+?,visit_count=visit_count+1 WHERE id=?`,[pts,total,custId]);
+    run(`UPDATE products SET stock=stock-? WHERE id=?`,[c.qty,c.id]); // reduce stock
+  }
+  cart.forEach(c=>run(`UPDATE products SET stock=MAX(0,stock-?) WHERE id=?`,[c.qty,c.id]));
+  toast(`✅ Đơn ${code} — ${fmtVnd(total)} (${method==='cash'?'Tiền mặt':method==='card'?'Thẻ':'Chuyển khoản'})`,'success');
+  showInvoiceModal(oid, code, total, method);
+  cart=[]; currentCustomer=null;
+  renderCartUI();
+}
+
+function printPreview() {
+  if(!cart.length){toast('Đơn hàng trống','error');return;}
+  const sub=cart.reduce((s,c)=>s+c.price*c.qty,0);
+  const disc=parseFloat((document.getElementById('cart-disc')||{}).value||0);
+  const tax=parseFloat((document.getElementById('cart-tax')||{}).value||0);
+  const discAmt=sub*disc/100; const taxAmt=(sub-discAmt)*tax/100; const total=sub-discAmt+taxAmt;
+  const note=(document.getElementById('cart-note')||{}).value||'';
+  const shop=getSetting('shop_name'); const addr=getSetting('shop_address'); const phone=getSetting('shop_phone');
+  const now=new Date();
+  let inv=buildInvoiceText({order_code:'PREVIEW',created_at:now.toISOString(),subtotal:sub,discount_pct:disc,discount_amt:discAmt,tax_pct:tax,tax_amt:taxAmt,total,payment_method:'—',note},
+    cart.map(c=>({product_name:c.name,qty:c.qty,price:c.price,total:c.price*c.qty})),
+    currentCustomer,shop,addr,phone);
+  showModal(`<div class="modal-title">🖨️ Xem trước hóa đơn</div><div class="invoice-print">${inv}</div>
+    <div class="modal-footer"><button class="btn primary" onclick="doPrint('${encodeURIComponent(inv)}')">In hóa đơn</button><button class="btn" onclick="closeModal()">Đóng</button></div>`);
+}
+
+function showInvoiceModal(oid, code, total, method) {
+  const order = query(`SELECT * FROM orders WHERE id=?`,[oid])[0];
+  const items = query(`SELECT * FROM order_items WHERE order_id=?`,[oid]);
+  const cust = order.customer_id?query(`SELECT * FROM customers WHERE id=?`,[order.customer_id])[0]:null;
+  const shop=getSetting('shop_name'); const addr=getSetting('shop_address'); const phone=getSetting('shop_phone');
+  const inv = buildInvoiceText(order,items,cust,shop,addr,phone);
+  showModal(`<div class="modal-title">✅ Thanh toán thành công</div>
+    <div style="text-align:center;padding:10px 0;margin-bottom:12px">
+      <div style="font-size:32px;margin-bottom:6px">🎉</div>
+      <div style="font-size:20px;font-weight:700;color:var(--primary);font-family:var(--mono)">${fmtVnd(total)}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">${method==='cash'?'💵 Tiền mặt':method==='card'?'💳 Thẻ':'📲 Chuyển khoản'} • ${code}</div>
+    </div>
+    <div class="invoice-print">${inv}</div>
+    <div class="modal-footer">
+      <button class="btn primary" onclick="doPrint('${encodeURIComponent(inv)}')">🖨️ In hóa đơn</button>
+      <button class="btn" onclick="closeModal()">Đóng</button>
+    </div>`,'sm');
+}
+
+function buildInvoiceText(order, items, cust, shop, addr, phone) {
+  const now = new Date(order.created_at);
+  const line = '─'.repeat(38);
+  let s = `╔${'═'.repeat(36)}╗\n`;
+  s += `║${center(shop,36)}║\n`;
+  s += `║${center(addr.slice(0,34),36)}║\n`;
+  s += `║${center('ĐT: '+phone,36)}║\n`;
+  s += `╚${'═'.repeat(36)}╝\n\n`;
+  s += `      HÓA ĐƠN BÁN HÀNG\n\n`;
+  s += `Số HĐ : ${order.order_code}\n`;
+  s += `Ngày  : ${now.toLocaleDateString('vi-VN')} ${now.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}\n`;
+  s += `Khách : ${cust?cust.name:'Khách vãng lai'}\n`;
+  if(cust) s += `SĐT   : ${cust.phone}\n`;
+  s += `${line}\n`;
+  s += `${'Món ăn'.padEnd(20)}SL ${'Giá'.padStart(8)}  ${'T.Tiền'.padStart(8)}\n`;
+  s += `${line}\n`;
+  items.forEach(it=>{
+    const name = it.product_name.length>18?it.product_name.slice(0,18)+'…':it.product_name;
+    s += `${name.padEnd(20)}${String(it.qty).padStart(2)} ${fmtK(it.price).padStart(8)}  ${fmtK(it.total).padStart(8)}\n`;
+  });
+  s += `${line}\n`;
+  s += `${'Tạm tính:'.padEnd(28)}${fmtK(order.subtotal).padStart(10)}\n`;
+  if(order.discount_pct>0) s += `${'Giảm giá ('+order.discount_pct+'%):'.padEnd(28)}${('-'+fmtK(order.discount_amt)).padStart(10)}\n`;
+  if(order.tax_pct>0) s += `${'Thuế VAT ('+order.tax_pct+'%):'.padEnd(28)}${fmtK(order.tax_amt).padStart(10)}\n`;
+  s += `${'━'.repeat(38)}\n`;
+  s += `${'TỔNG CỘNG:'.padEnd(28)}${fmtK(order.total).padStart(10)}\n`;
+  s += `${'━'.repeat(38)}\n`;
+  if(order.note) s += `Ghi chú: ${order.note}\n`;
+  if(cust) s += `\nĐiểm tích lũy: ${cust.points} điểm\n`;
+  s += `\n    Cảm ơn quý khách! Hẹn gặp lại! 🙏`;
+  return s;
+}
+
+function center(str,width) { const s=str.slice(0,width); const pad=Math.floor((width-s.length)/2); return ' '.repeat(pad)+s+' '.repeat(width-pad-s.length); }
+function doPrint(enc) {
+  const text = decodeURIComponent(enc);
+  const w = window.open('','_blank','width=420,height=700');
+  w.document.write(`<html><head><title>Hóa đơn</title><style>body{font-family:'Courier New',monospace;font-size:12px;white-space:pre;padding:16px;background:#fff;color:#000}</style></head><body>${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</body></html>`);
+  w.document.close(); setTimeout(()=>w.print(),300);
+}
+
+// ===================== PRODUCTS =====================
+let prodPage = 1;
+function renderProducts(page=1) {
+  prodPage=page;
+  const cats=query(`SELECT * FROM categories ORDER BY name`);
+  const search=(document.getElementById('prod-search')||{}).value||'';
+  const catFilter=(document.getElementById('prod-cat-filter')||{}).value||'';
+  let where='WHERE p.is_active=1';
+  const params=[];
+  if(search){where+=` AND (p.name LIKE ? OR p.code LIKE ?)`;params.push(`%${search}%`,`%${search}%`);}
+  if(catFilter){where+=` AND p.category_id=?`;params.push(parseInt(catFilter));}
+  const total=query(`SELECT COUNT(*) as n FROM products p ${where}`,params)[0].n;
+  const prods=query(`SELECT p.*,c.name as cat_name FROM products p LEFT JOIN categories c ON c.id=p.category_id ${where} ORDER BY p.id DESC LIMIT 15 OFFSET ${(page-1)*15}`,params);
+  const pages=Math.ceil(total/15);
+
+  document.getElementById('content-area').innerHTML=`
+  <div class="filter-bar">
+    <input type="text" id="prod-search" placeholder="🔍 Tìm theo tên, mã..." onkeyup="renderProducts()" style="max-width:260px" ${search?`value="${search}"`:''}> 
+    <select id="prod-cat-filter" onchange="renderProducts()" style="min-width:140px">
+      <option value="">Tất cả danh mục</option>
+      ${cats.map(c=>`<option value="${c.id}" ${catFilter==c.id?'selected':''}>${c.icon} ${c.name}</option>`).join('')}
+    </select>
+    <span style="font-size:12px;color:var(--text3);margin-left:4px">${total} món</span>
+  </div>
+  <div class="card">
+    <div class="table-wrap"><table>
+      <thead><tr><th>Mã SP</th><th>Tên món</th><th>Danh mục</th><th>Giá bán</th><th>Giá vốn</th><th>Lãi</th><th>Tồn kho</th><th>Trạng thái</th><th></th></tr></thead>
+      <tbody>
+      ${prods.map(p=>`<tr>
+        <td><span style="font-family:var(--mono);font-size:12px;color:var(--text3)">${p.code}</span></td>
+        <td><div style="display:flex;align-items:center;gap:8px"><span style="font-size:20px">${p.image||'🍽️'}</span><span class="name">${p.name}</span></div></td>
+        <td><span class="tag blue">${p.cat_name||'—'}</span></td>
+        <td style="font-family:var(--mono);color:var(--primary)">${fmtVnd(p.price)}</td>
+        <td style="font-family:var(--mono);color:var(--text3)">${fmtVnd(p.cost)}</td>
+        <td style="font-family:var(--mono);color:var(--green)">${p.price>0?Math.round((p.price-p.cost)/p.price*100):0}%</td>
+        <td><span class="tag ${p.stock<=p.min_stock?'red':p.stock<=p.min_stock*2?'amber':'green'}">${p.stock} ${p.unit}</span></td>
+        <td><span class="tag ${p.is_active?'green':'red'}">${p.is_active?'Hoạt động':'Dừng'}</span></td>
+        <td><div style="display:flex;gap:4px">
+          <button class="btn sm" onclick="showEditProduct(${p.id})">Sửa</button>
+          <button class="btn sm danger" onclick="deleteProduct(${p.id})">Xóa</button>
+        </div></td>
+      </tr>`).join('')}
+      </tbody>
+    </table></div>
+    ${pages>1?`<div class="pagination">${Array.from({length:pages},(_,i)=>`<button class="page-btn ${page===i+1?'active':''}" onclick="renderProducts(${i+1})">${i+1}</button>`).join('')}</div>`:''}
+  </div>`;
+}
+
+function showAddProduct(){
+  const cats=query(`SELECT * FROM categories`);
+  const nextCode='SP'+String((query(`SELECT MAX(CAST(SUBSTR(code,3) AS INTEGER)) as n FROM products`)[0].n||0)+1).padStart(3,'0');
+  modalForm('➕ Thêm món mới',`
+    <div class="form-row">
+      <div class="form-group"><label>Mã SP</label><input id="f-code" value="${nextCode}"></div>
+      <div class="form-group"><label>Tên món *</label><input id="f-name" placeholder="Phở bò..."></div>
+    </div>
+    <div class="form-row col3">
+      <div class="form-group"><label>Danh mục</label><select id="f-cat">${cats.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Giá bán *</label><input id="f-price" type="number" placeholder="45000"></div>
+      <div class="form-group"><label>Giá vốn</label><input id="f-cost" type="number" placeholder="15000"></div>
+    </div>
+    <div class="form-row col3">
+      <div class="form-group"><label>Đơn vị</label><select id="f-unit"><option>phần</option><option>tô</option><option>cái</option><option>ly</option><option>đĩa</option></select></div>
+      <div class="form-group"><label>Tồn kho</label><input id="f-stock" type="number" value="999"></div>
+      <div class="form-group"><label>Tồn tối thiểu</label><input id="f-minstk" type="number" value="5"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Biểu tượng</label><input id="f-icon" placeholder="🍜" maxlength="2"></div>
+      <div class="form-group"><label>URL ảnh</label><input id="f-img" placeholder="https://... hoặc để trống"></div>
+    </div>
+    <div class="form-row col1"><div class="form-group"><label>Mô tả</label><textarea id="f-desc" placeholder="Mô tả ngắn..."></textarea></div></div>`,
+    ()=>{
+      const name=v('f-name'),price=parseFloat(v('f-price'));
+      if(!name||!price){toast('Tên và giá là bắt buộc!','error');return false;}
+      const img=v('f-img')||v('f-icon')||'🍽️';
+      run(`INSERT INTO products(code,name,category_id,price,cost,unit,stock,min_stock,image,description) VALUES (?,?,?,?,?,?,?,?,?,?)`,
+        [v('f-code'),name,parseInt(v('f-cat')),price,parseFloat(v('f-cost'))||0,v('f-unit'),parseInt(v('f-stock'))||999,parseInt(v('f-minstk'))||5,img,v('f-desc')]);
+      toast('Đã thêm món mới!','success'); renderProducts();
+    });
+}
+
+function showEditProduct(id){
+  const p=query(`SELECT * FROM products WHERE id=?`,[id])[0];
+  const cats=query(`SELECT * FROM categories`);
+  if(!p) return;
+  modalForm('✏️ Sửa thông tin món',`
+    <div class="form-row">
+      <div class="form-group"><label>Mã SP</label><input id="f-code" value="${p.code}"></div>
+      <div class="form-group"><label>Tên món *</label><input id="f-name" value="${p.name}"></div>
+    </div>
+    <div class="form-row col3">
+      <div class="form-group"><label>Danh mục</label><select id="f-cat">${cats.map(c=>`<option value="${c.id}" ${c.id==p.category_id?'selected':''}>${c.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Giá bán</label><input id="f-price" type="number" value="${p.price}"></div>
+      <div class="form-group"><label>Giá vốn</label><input id="f-cost" type="number" value="${p.cost}"></div>
+    </div>
+    <div class="form-row col3">
+      <div class="form-group"><label>Đơn vị</label><select id="f-unit"><option ${p.unit=='phần'?'selected':''}>phần</option><option ${p.unit=='tô'?'selected':''}>tô</option><option ${p.unit=='cái'?'selected':''}>cái</option><option ${p.unit=='ly'?'selected':''}>ly</option></select></div>
+      <div class="form-group"><label>Tồn kho</label><input id="f-stock" type="number" value="${p.stock}"></div>
+      <div class="form-group"><label>Tồn tối thiểu</label><input id="f-minstk" type="number" value="${p.min_stock}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Ảnh/Icon</label><input id="f-img" value="${p.image}"></div>
+      <div class="form-group"><label>Trạng thái</label><select id="f-active"><option value="1" ${p.is_active?'selected':''}>Hoạt động</option><option value="0" ${!p.is_active?'selected':''}>Dừng bán</option></select></div>
+    </div>`,
+    ()=>{
+      run(`UPDATE products SET code=?,name=?,category_id=?,price=?,cost=?,unit=?,stock=?,min_stock=?,image=?,is_active=? WHERE id=?`,
+        [v('f-code'),v('f-name'),parseInt(v('f-cat')),parseFloat(v('f-price')),parseFloat(v('f-cost'))||0,v('f-unit'),parseInt(v('f-stock')),parseInt(v('f-minstk')),v('f-img'),parseInt(v('f-active')),id]);
+      toast('Đã cập nhật!','success'); renderProducts();
+    });
+}
+
+function deleteProduct(id){
+  if(!confirm('Xóa món này khỏi thực đơn?')) return;
+  run(`UPDATE products SET is_active=0 WHERE id=?`,[id]);
+  toast('Đã xóa món','success'); renderProducts();
+}
+
+// ===================== ORDERS =====================
+let orderPage=1;
+function renderOrders(page=1) {
+  orderPage=page;
+  const search=(document.getElementById('ord-search')||{}).value||'';
+  const dateF=(document.getElementById('ord-date')||{}).value||'';
+  let where='WHERE 1=1';const params=[];
+  if(search){where+=` AND (o.order_code LIKE ? OR COALESCE(c.name,'') LIKE ?)`;params.push(`%${search}%`,`%${search}%`);}
+  if(dateF){where+=` AND date(o.created_at)=?`;params.push(dateF);}
+  const total=query(`SELECT COUNT(*) as n FROM orders o LEFT JOIN customers c ON c.id=o.customer_id ${where}`,params)[0].n;
+  const orders=query(`SELECT o.*,COALESCE(c.name,'Khách lẻ') as cust_name FROM orders o LEFT JOIN customers c ON c.id=o.customer_id ${where} ORDER BY o.id DESC LIMIT 20 OFFSET ${(page-1)*20}`,params);
+  const pages=Math.ceil(total/20);
+  document.getElementById('content-area').innerHTML=`
+  <div class="filter-bar">
+    <input type="text" id="ord-search" placeholder="🔍 Tìm mã đơn, tên khách..." onkeyup="renderOrders()" style="max-width:240px" ${search?`value="${search}"`:''}> 
+    <input type="date" id="ord-date" onchange="renderOrders()" ${dateF?`value="${dateF}"`:''}> 
+    <span style="font-size:12px;color:var(--text3)">${total} đơn hàng</span>
+  </div>
+  <div class="card">
+    <div class="table-wrap"><table>
+      <thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>Tạm tính</th><th>Giảm</th><th>Thuế</th><th>Tổng tiền</th><th>Thanh toán</th><th>Điểm</th><th>Ngày giờ</th><th></th></tr></thead>
+      <tbody>
+      ${orders.map(o=>`<tr onclick="showOrderDetail(${o.id})">
+        <td><span class="name" style="font-family:var(--mono)">${o.order_code}</span></td>
+        <td>${o.cust_name}</td>
+        <td style="font-family:var(--mono);color:var(--text2)">${fmtVnd(o.subtotal)}</td>
+        <td style="color:var(--green);font-family:var(--mono)">${o.discount_pct>0?'-'+o.discount_pct+'%':'—'}</td>
+        <td style="color:var(--text3);font-family:var(--mono)">${o.tax_pct>0?o.tax_pct+'%':'—'}</td>
+        <td style="font-family:var(--mono);color:var(--primary);font-weight:700">${fmtVnd(o.total)}</td>
+        <td><span class="tag ${o.payment_method==='cash'?'green':o.payment_method==='card'?'blue':'purple'}">${o.payment_method==='cash'?'Tiền mặt':o.payment_method==='card'?'Thẻ':'CK'}</span></td>
+        <td style="font-family:var(--mono);color:var(--amber)">+${o.points_earned}</td>
+        <td style="color:var(--text3);font-size:12px">${o.created_at.slice(0,16)}</td>
+        <td><button class="btn sm" onclick="event.stopPropagation();showOrderDetail(${o.id})">Chi tiết</button></td>
+      </tr>`).join('')}
+      </tbody>
+    </table></div>
+    ${pages>1?`<div class="pagination">${Array.from({length:Math.min(pages,8)},(_,i)=>`<button class="page-btn ${page===i+1?'active':''}" onclick="renderOrders(${i+1})">${i+1}</button>`).join('')}</div>`:''}
+  </div>`;
+}
+
+function showOrderDetail(oid) {
+  const order=query(`SELECT o.*,COALESCE(c.name,'Khách lẻ') as cust_name,c.phone as cust_phone FROM orders o LEFT JOIN customers c ON c.id=o.customer_id WHERE o.id=?`,[oid])[0];
+  const items=query(`SELECT * FROM order_items WHERE order_id=?`,[oid]);
+  if(!order) return;
+  showModal(`<div class="modal-title">🧾 Chi tiết đơn ${order.order_code}</div>
+    <div class="grid-2" style="gap:10px;margin-bottom:14px">
+      <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px">Khách hàng</div><div style="font-weight:600">${order.cust_name}</div>${order.cust_phone?`<div style="font-size:12px;color:var(--text2)">${order.cust_phone}</div>`:''}</div>
+      <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px">Thời gian</div><div style="font-weight:600">${order.created_at.slice(0,16)}</div><div style="font-size:12px;color:var(--text2)">Thanh toán: ${order.payment_method==='cash'?'Tiền mặt':order.payment_method==='card'?'Thẻ':'Chuyển khoản'}</div></div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <table style="width:100%"><thead><tr><th>Món ăn</th><th>Đơn giá</th><th>SL</th><th>Thành tiền</th></tr></thead>
+      <tbody>${items.map(it=>`<tr><td class="name">${it.product_name}</td><td style="font-family:var(--mono)">${fmtVnd(it.price)}</td><td style="font-family:var(--mono)">${it.qty}</td><td style="font-family:var(--mono);color:var(--primary)">${fmtVnd(it.total)}</td></tr>`).join('')}</tbody></table>
+      <div class="divider"></div>
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+        <div class="cart-line" style="width:200px"><span class="cl-label">Tạm tính</span><span class="cl-val">${fmtVnd(order.subtotal)}</span></div>
+        ${order.discount_pct>0?`<div class="cart-line" style="width:200px"><span class="cl-label">Giảm giá ${order.discount_pct}%</span><span class="cl-val" style="color:var(--green)">- ${fmtVnd(order.discount_amt)}</span></div>`:''}
+        ${order.tax_pct>0?`<div class="cart-line" style="width:200px"><span class="cl-label">Thuế ${order.tax_pct}%</span><span class="cl-val">${fmtVnd(order.tax_amt)}</span></div>`:''}
+        <div style="display:flex;justify-content:space-between;width:200px;font-weight:700;font-size:15px"><span>Tổng cộng</span><span style="color:var(--primary);font-family:var(--mono)">${fmtVnd(order.total)}</span></div>
+      </div>
+    </div>
+    ${order.note?`<div style="font-size:12px;color:var(--text2)">Ghi chú: ${order.note}</div>`:''}
+    <div class="modal-footer"><button class="btn primary" onclick="reprintOrder(${oid})">🖨️ In lại</button><button class="btn" onclick="closeModal()">Đóng</button></div>`,'');
+}
+
+function reprintOrder(oid) {
+  const order=query(`SELECT * FROM orders WHERE id=?`,[oid])[0];
+  const items=query(`SELECT * FROM order_items WHERE order_id=?`,[oid]);
+  const cust=order.customer_id?query(`SELECT * FROM customers WHERE id=?`,[order.customer_id])[0]:null;
+  const inv=buildInvoiceText(order,items,cust,getSetting('shop_name'),getSetting('shop_address'),getSetting('shop_phone'));
+  doPrint(encodeURIComponent(inv));
+}
+
+// ===================== CUSTOMERS =====================
+function renderCustomers() {
+  const search=(document.getElementById('cust-search')||{}).value||'';
+  const custs=search?query(`SELECT * FROM customers WHERE name LIKE ? OR phone LIKE ? ORDER BY id DESC`,[`%${search}%`,`%${search}%`]):query(`SELECT * FROM customers ORDER BY id DESC`);
+  document.getElementById('content-area').innerHTML=`
+  <div class="filter-bar">
+    <input type="text" id="cust-search" placeholder="🔍 Tìm tên, SĐT..." onkeyup="renderCustomers()" style="max-width:260px" ${search?`value="${search}"`:''}> 
+    <span style="font-size:12px;color:var(--text3)">${custs.length} khách hàng</span>
+  </div>
+  <div class="card"><div class="table-wrap"><table>
+    <thead><tr><th>Mã KH</th><th>Tên khách</th><th>Điện thoại</th><th>Điểm</th><th>Tổng chi</th><th>Số lần mua</th><th>Ngày tạo</th><th></th></tr></thead>
+    <tbody>${custs.map(c=>`<tr>
+      <td><span style="font-family:var(--mono);color:var(--text3)">${c.code}</span></td>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div style="width:30px;height:30px;border-radius:50%;background:var(--primary-glow);border:1px solid rgba(59,130,246,.3);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--primary);flex-shrink:0">${c.name[0]}</div>
+        <span class="name">${c.name}</span>
+      </div></td>
+      <td style="font-family:var(--mono)">${c.phone}</td>
+      <td><span class="tag ${c.points>=10?'amber':'blue'}">⭐ ${c.points}</span></td>
+      <td style="font-family:var(--mono);color:var(--primary)">${fmtVnd(c.total_spent)}</td>
+      <td style="font-family:var(--mono)">${c.visit_count}</td>
+      <td style="color:var(--text3);font-size:12px">${c.created_at.slice(0,10)}</td>
+      <td><div style="display:flex;gap:4px">
+        <button class="btn sm" onclick="showCustomerDetail(${c.id})">Chi tiết</button>
+        <button class="btn sm" onclick="showEditCustomer(${c.id})">Sửa</button>
+      </div></td>
+    </tr>`).join('')}
+    </tbody>
+  </table></div></div>`;
+}
+
+function showAddCustomer(){
+  const nextCode='KH'+String((query(`SELECT COUNT(*)+1 as n FROM customers`)[0].n||1)).padStart(3,'0');
+  modalForm('➕ Thêm khách hàng',`
+    <div class="form-row">
+      <div class="form-group"><label>Mã KH</label><input id="f-code" value="${nextCode}"></div>
+      <div class="form-group"><label>Tên khách *</label><input id="f-name"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Điện thoại *</label><input id="f-phone" placeholder="0901..."></div>
+      <div class="form-group"><label>Email</label><input id="f-email" placeholder="...@gmail.com"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Sinh nhật</label><input id="f-bday" type="date"></div>
+      <div class="form-group"><label>Điểm ban đầu</label><input id="f-pts" type="number" value="0"></div>
+    </div>
+    <div class="form-row col1"><div class="form-group"><label>Địa chỉ</label><input id="f-addr"></div></div>
+    <div class="form-row col1"><div class="form-group"><label>Ghi chú</label><textarea id="f-notes"></textarea></div></div>`,
+    ()=>{
+      const name=v('f-name'),phone=v('f-phone');
+      if(!name||!phone){toast('Tên và SĐT là bắt buộc!','error');return false;}
+      if(query(`SELECT id FROM customers WHERE phone=?`,[phone]).length){toast('SĐT đã tồn tại!','error');return false;}
+      run(`INSERT INTO customers(code,name,phone,email,birthday,address,points,notes) VALUES(?,?,?,?,?,?,?,?)`,
+        [v('f-code'),name,phone,v('f-email'),v('f-bday'),v('f-addr'),parseInt(v('f-pts'))||0,v('f-notes')]);
+      toast('Đã thêm khách hàng!','success'); renderCustomers();
+    });
+}
+
+function showEditCustomer(id){
+  const c=query(`SELECT * FROM customers WHERE id=?`,[id])[0];
+  if(!c) return;
+  modalForm('✏️ Sửa thông tin khách',`
+    <div class="form-row">
+      <div class="form-group"><label>Tên khách</label><input id="f-name" value="${c.name}"></div>
+      <div class="form-group"><label>Điện thoại</label><input id="f-phone" value="${c.phone}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Email</label><input id="f-email" value="${c.email||''}"></div>
+      <div class="form-group"><label>Sinh nhật</label><input id="f-bday" type="date" value="${c.birthday||''}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Điểm hiện tại</label><input id="f-pts" type="number" value="${c.points}"></div>
+      <div class="form-group"><label>Địa chỉ</label><input id="f-addr" value="${c.address||''}"></div>
+    </div>
+    <div class="form-row col1"><div class="form-group"><label>Ghi chú</label><textarea id="f-notes">${c.notes||''}</textarea></div></div>`,
+    ()=>{
+      run(`UPDATE customers SET name=?,phone=?,email=?,birthday=?,address=?,points=?,notes=? WHERE id=?`,
+        [v('f-name'),v('f-phone'),v('f-email'),v('f-bday'),v('f-addr'),parseInt(v('f-pts'))||0,v('f-notes'),id]);
+      toast('Đã cập nhật!','success'); renderCustomers();
+    });
+}
+
+function showCustomerDetail(id){
+  const c=query(`SELECT * FROM customers WHERE id=?`,[id])[0];
+  const orders=query(`SELECT * FROM orders WHERE customer_id=? ORDER BY id DESC LIMIT 10`,[id]);
+  const filled=Math.min(10,c.points%10);
+  showModal(`<div class="modal-title">👤 ${c.name}</div>
+    <div class="loyalty-card" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div><div class="lc-name">${c.name}</div><div class="lc-phone">${c.phone}</div>${c.email?`<div class="lc-phone">${c.email}</div>`:''}</div>
+        <div style="text-align:right"><div class="lc-pts">${c.points}</div><div style="font-size:11px;color:#6b9fd4">điểm</div></div>
+      </div>
+      <div class="loyalty-dots">${Array.from({length:10},(_,i)=>`<div class="ldot ${i<filled?'filled':''}"></div>`).join('')}</div>
+      <div style="font-size:11px;color:#6b9fd4;margin-top:8px">Tổng chi: ${fmtVnd(c.total_spent)} • ${c.visit_count} lần ghé</div>
+    </div>
+    <h4 style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text2)">Lịch sử gần đây</h4>
+    ${orders.map(o=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span style="font-family:var(--mono);color:var(--text3)">${o.order_code}</span>
+      <span style="color:var(--text2)">${o.created_at.slice(0,10)}</span>
+      <span style="color:var(--primary);font-family:var(--mono);font-weight:700">${fmtVnd(o.total)}</span>
+    </div>`).join('')}
+    <div class="modal-footer"><button class="btn" onclick="closeModal()">Đóng</button></div>`);
+}
+
+// ===================== LOYALTY =====================
+function renderLoyalty() {
+  const custs=query(`SELECT * FROM customers WHERE points>0 ORDER BY points DESC`);
+  document.getElementById('content-area').innerHTML=`
+  <div class="grid-3" style="margin-bottom:16px">
+    <div class="stat-card amber"><div class="sc-icon">⭐</div><div class="sc-label">Tổng điểm đang lưu</div><div class="sc-val">${custs.reduce((s,c)=>s+c.points,0)}</div></div>
+    <div class="stat-card green"><div class="sc-icon">👥</div><div class="sc-label">KH có thẻ tích điểm</div><div class="sc-val">${custs.length}</div></div>
+    <div class="stat-card blue"><div class="sc-icon">🎁</div><div class="sc-label">KH đủ điều kiện giảm</div><div class="sc-val">${custs.filter(c=>c.points>=10).length}</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">
+    ${custs.map(c=>{
+      const filled=Math.min(10,c.points%10);
+      return `<div style="cursor:pointer" onclick="showCustomerDetail(${c.id})">
+        <div class="loyalty-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div><div class="lc-name">${c.name}</div><div class="lc-phone">${c.phone}</div></div>
+            <div style="text-align:right"><div class="lc-pts">${c.points}</div><div style="font-size:10px;color:#6b9fd4">điểm</div></div>
+          </div>
+          <div class="loyalty-dots">${Array.from({length:10},(_,i)=>`<div class="ldot ${i<filled?'filled':''}"></div>`).join('')}</div>
+          <div style="font-size:11px;color:#6b9fd4;margin-top:8px;display:flex;justify-content:space-between">
+            <span>${c.visit_count} lần ghé</span>
+            <span>${c.points>=10?'✅ Được giảm 5%':'Cần thêm '+(10-c.points%10)+' điểm'}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}
+    ${!custs.length?'<div class="empty-state" style="grid-column:1/-1"><div class="es-icon">⭐</div><p>Chưa có khách hàng nào tích điểm</p></div>':''}
+  </div>`;
+}
+
+// ===================== INVENTORY =====================
+function renderInventory() {
+  const prods=query(`SELECT p.*,c.name as cat_name FROM products p LEFT JOIN categories c ON c.id=p.category_id WHERE p.is_active=1 ORDER BY p.stock ASC`);
+  const logs=query(`SELECT il.*,p.name as prod_name FROM inventory_log il JOIN products p ON p.id=il.product_id ORDER BY il.id DESC LIMIT 20`);
+  document.getElementById('content-area').innerHTML=`
+  <div class="grid-2">
+    <div class="card">
+      <div class="section-header"><h3>📦 Tồn kho hiện tại</h3></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Món ăn</th><th>Danh mục</th><th>Tồn kho</th><th>Tối thiểu</th><th>Trạng thái</th></tr></thead>
+        <tbody>${prods.map(p=>`<tr>
+          <td><div style="display:flex;align-items:center;gap:8px"><span>${p.image||'🍽️'}</span><span class="name">${p.name}</span></div></td>
+          <td style="color:var(--text3)">${p.cat_name||''}</td>
+          <td style="font-family:var(--mono);font-weight:600">${p.stock} ${p.unit}</td>
+          <td style="font-family:var(--mono);color:var(--text3)">${p.min_stock}</td>
+          <td><span class="tag ${p.stock<=p.min_stock?'red':p.stock<=p.min_stock*2?'amber':'green'}">${p.stock<=p.min_stock?'Hết hàng':p.stock<=p.min_stock*2?'Sắp hết':'Đủ hàng'}</span></td>
+        </tr>`).join('')}
+        </tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="section-header"><h3>📋 Lịch sử nhập/xuất kho</h3></div>
+      ${logs.length?`<div class="table-wrap"><table>
+        <thead><tr><th>Sản phẩm</th><th>Loại</th><th>SL thay đổi</th><th>Ghi chú</th><th>Thời gian</th></tr></thead>
+        <tbody>${logs.map(l=>`<tr>
+          <td class="name">${l.prod_name}</td>
+          <td><span class="tag ${l.type==='import'?'green':'amber'}">${l.type==='import'?'Nhập':'Xuất'}</span></td>
+          <td style="font-family:var(--mono);color:${l.qty_change>0?'var(--green)':'var(--red)'}">${l.qty_change>0?'+':''}${l.qty_change}</td>
+          <td style="color:var(--text3)">${l.note||'—'}</td>
+          <td style="color:var(--text3);font-size:12px">${l.created_at.slice(0,16)}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>`:'<div class="empty-state"><p>Chưa có nhật ký kho</p></div>'}
+    </div>
+  </div>`;
+}
+
+function showAddInventory(){
+  const prods=query(`SELECT * FROM products WHERE is_active=1 ORDER BY name`);
+  modalForm('📦 Nhập/Xuất kho',`
+    <div class="form-row">
+      <div class="form-group"><label>Sản phẩm *</label><select id="f-prod">${prods.map(p=>`<option value="${p.id}">${p.name} (tồn: ${p.stock})</option>`).join('')}</select></div>
+      <div class="form-group"><label>Loại giao dịch</label><select id="f-type"><option value="import">Nhập kho (+)</option><option value="export">Xuất kho (-)</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Số lượng *</label><input id="f-qty" type="number" placeholder="50" min="1"></div>
+      <div class="form-group"><label>Ghi chú</label><input id="f-note" placeholder="Lý do..."></div>
+    </div>`,
+    ()=>{
+      const pid=parseInt(v('f-prod'));const qty=parseInt(v('f-qty'));const type=v('f-type');
+      if(!pid||!qty){toast('Chọn sản phẩm và số lượng!','error');return false;}
+      const change=type==='import'?qty:-qty;
+      run(`UPDATE products SET stock=MAX(0,stock+?) WHERE id=?`,[change,pid]);
+      run(`INSERT INTO inventory_log(product_id,type,qty_change,note) VALUES(?,?,?,?)`,[pid,type,change,v('f-note')]);
+      toast(`Đã cập nhật kho!`,'success'); renderInventory();
+    });
+}
+
+// ===================== REPORTS =====================
+function renderReports() {
+  const period=(document.getElementById('rpt-period')||{}).value||'7';
+  const byDay=query(`SELECT date(created_at) as day,SUM(total) as rev,COUNT(*) as cnt,COALESCE(SUM(total-discount_amt),0) as net,COALESCE(SUM((SELECT COALESCE(SUM(cost*qty),0) FROM order_items oi WHERE oi.order_id=orders.id)),0) as cogs FROM orders WHERE date(created_at)>=date('now','-${period} days') AND status='completed' GROUP BY day ORDER BY day`);
+  const totalRev=byDay.reduce((s,r)=>s+r.rev,0);
+  const totalOrd=byDay.reduce((s,r)=>s+r.cnt,0);
+  const byMethod=query(`SELECT payment_method,COUNT(*) as cnt,SUM(total) as rev FROM orders WHERE date(created_at)>=date('now','-${period} days') AND status='completed' GROUP BY payment_method`);
+  const topProd=query(`SELECT p.name,p.image,SUM(oi.qty) as sold,SUM(oi.total) as rev,SUM(oi.qty*(oi.price-oi.cost)) as profit FROM order_items oi JOIN products p ON p.id=oi.product_id JOIN orders o ON o.id=oi.order_id WHERE date(o.created_at)>=date('now','-${period} days') AND o.status='completed' GROUP BY oi.product_id ORDER BY rev DESC LIMIT 8`);
+  const expenses=query(`SELECT category,SUM(amount) as total FROM expenses WHERE expense_date>=date('now','-${period} days') GROUP BY category`);
+  const totalExp=expenses.reduce((s,e)=>s+e.total,0);
+  const profit=totalRev-totalExp;
+
+  document.getElementById('content-area').innerHTML=`
+  <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
+    <select id="rpt-period" onchange="renderReports()" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 12px;color:var(--text);font-family:var(--font);outline:none">
+      <option value="7" ${period==='7'?'selected':''}>7 ngày qua</option>
+      <option value="30" ${period==='30'?'selected':''}>30 ngày qua</option>
+      <option value="90" ${period==='90'?'selected':''}>90 ngày qua</option>
+    </select>
+    <span style="font-size:12px;color:var(--text3)">Từ ${new Date(Date.now()-parseInt(period)*86400000).toLocaleDateString('vi-VN')} đến hôm nay</span>
+  </div>
+  <div class="grid-4" style="margin-bottom:16px">
+    <div class="stat-card blue"><div class="sc-icon">💰</div><div class="sc-label">Tổng doanh thu</div><div class="sc-val">${fmtK(totalRev)}</div></div>
+    <div class="stat-card green"><div class="sc-icon">📈</div><div class="sc-label">Lợi nhuận</div><div class="sc-val">${fmtK(profit)}</div><div class="sc-sub" style="color:${profit>=0?'var(--green)':'var(--red)'}">${totalRev>0?Math.round(profit/totalRev*100):0}% margin</div></div>
+    <div class="stat-card amber"><div class="sc-icon">🧾</div><div class="sc-label">Số đơn hàng</div><div class="sc-val">${totalOrd}</div></div>
+    <div class="stat-card red"><div class="sc-icon">💸</div><div class="sc-label">Tổng chi phí</div><div class="sc-val">${fmtK(totalExp)}</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="section-header"><h3>📈 Doanh thu theo ngày</h3></div>
+      <div class="chart-wrap" style="height:220px"><canvas id="rptChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-header"><h3>💳 Phương thức thanh toán</h3></div>
+      <div class="chart-wrap" style="height:220px"><canvas id="payChart"></canvas></div>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="section-header"><h3>🏆 Top món bán chạy</h3></div>
+      ${topProd.map((p,i)=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:11px;font-weight:700;color:${['var(--amber)','var(--text2)','var(--text3)'][i]||'var(--text3)'};width:16px">#${i+1}</span>
+          <span style="font-size:18px">${p.image||'🍽️'}</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500">${p.name}</div>
+            <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" style="width:${Math.min(100,p.sold/(topProd[0]?.sold||1)*100)}%;background:var(--primary)"></div></div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:12px;font-family:var(--mono);font-weight:700;color:var(--primary)">${fmtVnd(p.rev)}</div>
+            <div style="font-size:11px;color:var(--text3)">${p.sold} bán</div>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div class="card">
+      <div class="section-header"><h3>💸 Chi phí theo danh mục</h3></div>
+      ${expenses.map(e=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:13px;color:var(--text2)">${e.category}</span>
+        <div style="text-align:right">
+          <div style="font-family:var(--mono);font-weight:600;color:var(--red)">${fmtVnd(e.total)}</div>
+          <div style="font-size:11px;color:var(--text3)">${totalExp>0?Math.round(e.total/totalExp*100):0}%</div>
+        </div>
+      </div>`).join('')||'<div class="empty-state"><p>Không có chi phí</p></div>'}
+    </div>
+  </div>`;
+
+  setTimeout(()=>{
+    const labels=byDay.map(r=>new Date(r.day).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'}));
+    const ctx1=document.getElementById('rptChart');
+    if(ctx1) new Chart(ctx1,{type:'line',data:{labels,datasets:[{label:'Doanh thu',data:byDay.map(r=>r.rev),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:0.4,pointRadius:3},{label:'Đơn hàng',data:byDay.map(r=>r.cnt*5000),borderColor:'#22c55e',backgroundColor:'transparent',tension:0.4,pointRadius:2,borderDash:[5,3]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8fa3bc',font:{size:11}}}},scales:{y:{ticks:{callback:v=>fmtK(v),color:'#5a7090'},grid:{color:'rgba(255,255,255,.04)'}},x:{ticks:{color:'#5a7090',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}}}}});
+    const ctx2=document.getElementById('payChart');
+    if(ctx2&&byMethod.length) new Chart(ctx2,{type:'doughnut',data:{labels:byMethod.map(m=>m.payment_method==='cash'?'Tiền mặt':m.payment_method==='card'?'Thẻ':'Chuyển khoản'),datasets:[{data:byMethod.map(m=>m.rev),backgroundColor:['#22c55e','#3b82f6','#a855f7'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#8fa3bc',font:{size:11},padding:12}}}}});
+  },100);
+}
+
+// ===================== EXPENSES =====================
+function renderExpenses() {
+  const exps=query(`SELECT * FROM expenses ORDER BY id DESC`);
+  const total=exps.reduce((s,e)=>s+e.amount,0);
+  const byMonth=query(`SELECT strftime('%Y-%m',expense_date) as mon,SUM(amount) as total FROM expenses GROUP BY mon ORDER BY mon DESC LIMIT 6`);
+  document.getElementById('content-area').innerHTML=`
+  <div class="grid-3" style="margin-bottom:14px">
+    <div class="stat-card red"><div class="sc-icon">💸</div><div class="sc-label">Tổng chi phí</div><div class="sc-val">${fmtK(total)}</div></div>
+    <div class="stat-card amber"><div class="sc-icon">📅</div><div class="sc-label">Chi phí tháng này</div><div class="sc-val">${fmtK((query(`SELECT COALESCE(SUM(amount),0) as t FROM expenses WHERE strftime('%Y-%m',expense_date)=strftime('%Y-%m','now')`)[0]||{t:0}).t)}</div></div>
+    <div class="stat-card blue"><div class="sc-icon">📊</div><div class="sc-label">Số mục chi phí</div><div class="sc-val">${exps.length}</div></div>
+  </div>
+  <div class="card">
+    <div class="section-header"><h3>📋 Danh sách chi phí</h3>
+      <button class="btn primary sm" onclick="showAddExpense()">+ Thêm chi phí</button>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Tiêu đề</th><th>Danh mục</th><th>Số tiền</th><th>Ngày</th><th>Ghi chú</th><th></th></tr></thead>
+      <tbody>${exps.map(e=>`<tr>
+        <td class="name">${e.title}</td>
+        <td><span class="tag amber">${e.category}</span></td>
+        <td style="font-family:var(--mono);color:var(--red);font-weight:600">${fmtVnd(e.amount)}</td>
+        <td style="color:var(--text3)">${e.expense_date}</td>
+        <td style="color:var(--text3)">${e.note||'—'}</td>
+        <td><button class="btn sm danger" onclick="deleteExpense(${e.id})">Xóa</button></td>
+      </tr>`).join('')}
+      </tbody>
+    </table></div>
+  </div>`;
+}
+
+function showAddExpense(){
+  modalForm('➕ Thêm chi phí',`
+    <div class="form-row col1"><div class="form-group"><label>Tiêu đề *</label><input id="f-title" placeholder="Mua nguyên liệu..."></div></div>
+    <div class="form-row">
+      <div class="form-group"><label>Danh mục</label><select id="f-cat"><option>Nguyên liệu</option><option>Cố định</option><option>Nhân công</option><option>Tiện ích</option><option>Khác</option></select></div>
+      <div class="form-group"><label>Số tiền *</label><input id="f-amount" type="number" placeholder="500000"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Ngày</label><input id="f-date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="form-group"><label>Ghi chú</label><input id="f-note"></div>
+    </div>`,
+    ()=>{
+      const title=v('f-title'),amount=parseFloat(v('f-amount'));
+      if(!title||!amount){toast('Tiêu đề và số tiền là bắt buộc!','error');return false;}
+      run(`INSERT INTO expenses(title,category,amount,expense_date,note) VALUES(?,?,?,?,?)`,
+        [title,v('f-cat'),amount,v('f-date'),v('f-note')]);
+      toast('Đã thêm chi phí!','success'); renderExpenses();
+    });
+}
+
+function deleteExpense(id){
+  if(!confirm('Xóa mục chi phí này?'))return;
+  run(`DELETE FROM expenses WHERE id=?`,[id]);
+  toast('Đã xóa','success'); renderExpenses();
+}
+
+// ===================== SETTINGS =====================
+function renderSettings(){
+  const settings=query(`SELECT * FROM settings`);
+  const get=k=>(settings.find(s=>s.key===k)||{value:''}).value;
+  document.getElementById('content-area').innerHTML=`
+  <div class="grid-2">
+    <div class="card">
+      <div class="section-header"><h3>🏪 Thông tin cửa hàng</h3></div>
+      <div class="form-row col1"><div class="form-group"><label>Tên cửa hàng</label><input id="s-name" value="${get('shop_name')}"></div></div>
+      <div class="form-row col1"><div class="form-group"><label>Địa chỉ</label><input id="s-addr" value="${get('shop_address')}"></div></div>
+      <div class="form-row col1"><div class="form-group"><label>Điện thoại</label><input id="s-phone" value="${get('shop_phone')}"></div></div>
+      <button class="btn primary" onclick="saveShopSettings()">Lưu thông tin</button>
+    </div>
+    <div class="card">
+      <div class="section-header"><h3>⭐ Chương trình tích điểm</h3></div>
+      <div class="form-row col1"><div class="form-group"><label>Số tiền để được 1 điểm (₫)</label><input id="s-ptsvnd" type="number" value="${get('points_per_vnd')}"></div></div>
+      <div class="form-row col1"><div class="form-group"><label>Mỗi 10 điểm = giảm (% )</label><input id="s-ptsdisc" type="number" value="${get('discount_per_10pts')}"></div></div>
+      <div class="form-row col1"><div class="form-group"><label>Thuế VAT mặc định (%)</label><input id="s-tax" type="number" value="${get('tax_pct')}"></div></div>
+      <button class="btn primary" onclick="savePointSettings()">Lưu cài đặt</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-header"><h3>🗄️ Sao lưu & Phục hồi dữ liệu</h3></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn success" onclick="exportDB()">💾 Xuất file SQL</button>
+      <button class="btn" onclick="clearAllData()">🗑️ Xóa toàn bộ dữ liệu</button>
+      <button class="btn" onclick="resetSeedData()">🔄 Khôi phục dữ liệu mẫu</button>
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:var(--text3)">
+      Dữ liệu được lưu tự động vào localStorage trình duyệt. Xuất file SQL để sao lưu an toàn hơn.
+    </div>
+  </div>`;
+}
+
+function saveShopSettings(){
+  run(`INSERT OR REPLACE INTO settings VALUES ('shop_name',?)`,[v('s-name')]);
+  run(`INSERT OR REPLACE INTO settings VALUES ('shop_address',?)`,[v('s-addr')]);
+  run(`INSERT OR REPLACE INTO settings VALUES ('shop_phone',?)`,[v('s-phone')]);
+  toast('Đã lưu thông tin cửa hàng!','success');
+}
+
+function savePointSettings(){
+  run(`INSERT OR REPLACE INTO settings VALUES ('points_per_vnd',?)`,[v('s-ptsvnd')]);
+  run(`INSERT OR REPLACE INTO settings VALUES ('discount_per_10pts',?)`,[v('s-ptsdisc')]);
+  run(`INSERT OR REPLACE INTO settings VALUES ('tax_pct',?)`,[v('s-tax')]);
+  toast('Đã lưu cài đặt!','success');
+}
+
+async function exportDB(){
+  await saveDBNow();
+  const buf=db.export();
+  const blob=new Blob([buf],{type:'application/x-sqlite3'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`pos_backup_${new Date().toISOString().slice(0,10)}.sqlite`;a.click();
+  toast('Đã xuất file database!','success');
+}
+
+async function clearAllData(){
+  if(!confirm('⚠️ XÓA TOÀN BỘ DỮ LIỆU? Hành động này không thể hoàn tác!'))return;
+  if(!confirm('Xác nhận lần nữa: Bạn thực sự muốn xóa tất cả?'))return;
+  await idbClear();
+  localStorage.removeItem('pos_db_v2');
+  location.reload();
+}
+
+async function resetSeedData(){
+  if(!confirm('Khôi phục về dữ liệu mẫu? Dữ liệu hiện tại sẽ bị mất!'))return;
+  await idbClear();
+  localStorage.removeItem('pos_db_v2');
+  location.reload();
+}
+
+// ===================== DATABASE VIEWER =====================
+function renderDatabase(){
+  const tables=['categories','products','customers','orders','order_items','expenses','inventory_log','settings'];
+  const sel=(document.getElementById('db-table')||{}).value||'orders';
+  const cols=query(`PRAGMA table_info(${sel})`);
+  const rows=query(`SELECT * FROM ${sel} ORDER BY rowid DESC LIMIT 50`);
+  const counts=tables.map(t=>({t,n:(query(`SELECT COUNT(*) as n FROM ${t}`)[0]||{n:0}).n}));
+
+  document.getElementById('content-area').innerHTML=`
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+    ${counts.map(c=>`<button class="btn ${sel===c.t?'primary':''}" onclick="switchDBTable('${c.t}')">${c.t} <span style="font-family:var(--mono);font-size:11px;opacity:.7">(${c.n})</span></button>`).join('')}
+    <input type="hidden" id="db-table" value="${sel}">
+  </div>
+  <div class="card">
+    <div class="section-header">
+      <h3 style="font-family:var(--mono)">SELECT * FROM ${sel} LIMIT 50</h3>
+      <div style="display:flex;gap:8px">
+        <button class="btn sm" onclick="exportTableCSV('${sel}')">Xuất CSV</button>
+        <span style="font-size:12px;color:var(--text3);line-height:36px">${rows.length} dòng</span>
+      </div>
+    </div>
+    <div class="table-wrap" style="max-height:400px;overflow:auto">
+      <table>
+        <thead><tr>${cols.map(c=>`<th>${c.name}</th>`).join('')}</tr></thead>
+        <tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;font-family:${['id','price','total','amount','qty','stock','points'].some(k=>c.name.includes(k))?'var(--mono)':'inherit'}">${r[c.name]??'NULL'}</td>`).join('')}</tr>`).join('')||`<tr><td colspan="${cols.length}" style="text-align:center;padding:20px;color:var(--text3)">Bảng trống</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-header"><h3>🔍 SQL Query tùy chỉnh</h3></div>
+    <textarea id="custom-sql" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px;color:var(--text);font-family:var(--mono);font-size:12px;height:80px;resize:vertical;outline:none;margin-bottom:8px" placeholder="SELECT * FROM orders WHERE total > 100000 ORDER BY id DESC LIMIT 10;">SELECT * FROM orders ORDER BY id DESC LIMIT 10;</textarea>
+    <div style="display:flex;gap:8px">
+      <button class="btn primary" onclick="runCustomSQL()">▶ Chạy truy vấn</button>
+      <button class="btn" onclick="document.getElementById('sql-result').innerHTML=''">Xóa kết quả</button>
+    </div>
+    <div id="sql-result" style="margin-top:10px;overflow-x:auto"></div>
+  </div>`;
+}
+
+function switchDBTable(t){document.getElementById('db-table').value=t;renderDatabase();}
+
+function runCustomSQL(){
+  const sql=(document.getElementById('custom-sql')||{}).value;
+  if(!sql) return;
+  try {
+    const res=db.exec(sql);
+    if(!res.length){document.getElementById('sql-result').innerHTML='<div style="color:var(--green);font-size:13px">✅ Truy vấn thực thi thành công (không có kết quả trả về)</div>';return;}
+    const cols=res[0].columns;const rows=res[0].values;
+    document.getElementById('sql-result').innerHTML=`<div class="table-wrap"><table>
+      <thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map(r=>`<tr>${r.map(cell=>`<td style="font-family:var(--mono);font-size:12px">${cell??'NULL'}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table></div><div style="font-size:12px;color:var(--text3);margin-top:6px">${rows.length} dòng kết quả</div>`;
+    saveDB();
+  } catch(e) {
+    document.getElementById('sql-result').innerHTML=`<div style="color:var(--red);font-size:13px;font-family:var(--mono)">❌ Lỗi: ${e.message}</div>`;
+  }
+}
+
+function exportTableCSV(table){
+  const rows=query(`SELECT * FROM ${table}`);
+  if(!rows.length){toast('Bảng trống','error');return;}
+  const cols=Object.keys(rows[0]);
+  const csv=[cols.join(','),...rows.map(r=>cols.map(c=>`"${(r[c]??'').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${table}_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  toast(`Đã xuất ${table}.csv`,'success');
+}
+
+// ===================== UTILS =====================
+function fmtVnd(n) { return new Intl.NumberFormat('vi-VN').format(Math.round(n||0))+'₫'; }
+function fmtK(n) { if(Math.abs(n)>=1000000) return (n/1000000).toFixed(1)+'tr'; if(Math.abs(n)>=1000) return Math.round(n/1000)+'k'; return Math.round(n)+'₫'; }
+function v(id) { const el=document.getElementById(id); return el?el.value:''; }
+function getSetting(k) { return (query(`SELECT value FROM settings WHERE key=?`,[k])[0]||{value:''}).value; }
+
+function toast(msg, type='info') {
+  const tc=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  const icons={success:'✅',error:'❌',info:'ℹ️'};
+  t.className=`toast ${type}`;t.innerHTML=`${icons[type]||'•'} ${msg}`;
+  tc.appendChild(t);
+  setTimeout(()=>{t.style.animation='fadeOut .3s ease forwards';setTimeout(()=>t.remove(),300);},3500);
+}
+
+function showModal(html, size='') {
+  document.getElementById('modal-container').innerHTML=`
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal ${size}">${html}</div>
+    </div>`;
+}
+
+function closeModal() { document.getElementById('modal-container').innerHTML=''; }
+
+function modalForm(title, formHTML, onSave) {
+  showModal(`<div class="modal-title">${title}</div>${formHTML}
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Hủy</button>
+      <button class="btn primary" onclick="if(window._modalSave()!==false)closeModal()">Lưu</button>
+    </div>`);
+  window._modalSave = onSave;
+}
+
+function exportData() {
+  const sql=`-- POS Quán Ăn Sáng - Export SQL\n-- Date: ${new Date().toISOString()}\n\n` +
+    ['categories','products','customers','orders','order_items','expenses'].map(t=>{
+      const rows=query(`SELECT * FROM ${t}`);
+      if(!rows.length) return `-- ${t}: empty\n`;
+      const cols=Object.keys(rows[0]);
+      return `-- Table: ${t}\n`+rows.map(r=>`INSERT INTO ${t}(${cols.join(',')}) VALUES (${cols.map(c=>r[c]===null?'NULL':typeof r[c]==='number'?r[c]:`'${String(r[c]).replace(/'/g,"''")}'`).join(',')});`).join('\n')+'\n\n';
+    }).join('');
+  const blob=new Blob([sql],{type:'text/sql'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`pos_export_${new Date().toISOString().slice(0,10)}.sql`;a.click();
+  toast('Đã xuất file SQL!','success');
+}
+
+function globalSearch(q) {
+  if(!q||q.length<2) return;
+  const prods=query(`SELECT * FROM products WHERE name LIKE ? AND is_active=1 LIMIT 3`,[`%${q}%`]);
+  const custs=query(`SELECT * FROM customers WHERE name LIKE ? OR phone LIKE ? LIMIT 3`,[`%${q}%`,`%${q}%`]);
+  // Quick navigation hints
+}
+
+// ===================== INIT =====================
+initDB().then(()=>{
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    n.addEventListener('click',function(){
+      document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+}).catch(e=>{
+  document.getElementById('content-area').innerHTML=`<div class="empty-state"><div class="es-icon">⚠️</div><p>Lỗi khởi động cơ sở dữ liệu: ${e.message}</p></div>`;
+});
+</script>
+</body>
+</html>
