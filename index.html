@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>POS Quán Ăn Sáng — Hệ Thống Quản Lý</title>
+<title>POS VJP POS — Hệ Thống Quản Lý</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
-:root{
+/* ── DARK THEME (default) ── */
+:root,[data-theme="dark"]{
   --bg:#0f1117;--bg2:#161b22;--bg3:#1c2230;--bg4:#222d3d;
   --border:#2a3447;--border2:#3a4a62;
   --text:#e8edf5;--text2:#8fa3bc;--text3:#5a7090;
@@ -22,6 +23,55 @@
   --radius:8px;--radius2:12px;--radius3:16px;
   --shadow:0 4px 24px rgba(0,0,0,.4);
   --font:'Be Vietnam Pro',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+/* ── LIGHT THEME ── */
+[data-theme="light"]{
+  --bg:#f0f2f5;--bg2:#ffffff;--bg3:#f8f9fb;--bg4:#edf0f4;
+  --border:#dde1e8;--border2:#c8cdd8;
+  --text:#1a2030;--text2:#4a5568;--text3:#8a94a6;
+  --primary:#2563eb;--primary2:#1d4ed8;--primary-glow:rgba(37,99,235,.12);
+  --green:#16a34a;--green2:#15803d;--green-bg:rgba(22,163,74,.1);
+  --red:#dc2626;--red2:#b91c1c;--red-bg:rgba(220,38,38,.08);
+  --amber:#d97706;--amber-bg:rgba(217,119,6,.1);
+  --purple:#7c3aed;--purple-bg:rgba(124,58,237,.1);
+  --teal:#0d9488;--teal-bg:rgba(13,148,136,.1);
+  --shadow:0 4px 24px rgba(0,0,0,.12);
+}
+[data-theme="light"] .invoice-print{background:#f5f5f5;color:#222}
+
+/* ── MOBILE RESPONSIVE ── */
+@media(max-width:768px){
+  .sidebar{position:fixed;left:-220px;top:0;bottom:0;z-index:200;transition:left .25s ease;box-shadow:4px 0 24px rgba(0,0,0,.3)}
+  .sidebar.open{left:0}
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199}
+  .sidebar-overlay.show{display:block}
+  .main{width:100vw}
+  .topbar{padding:0 12px;gap:8px}
+  .topbar-search{display:none}
+  .topbar-btn.secondary{display:none}
+  .hamburger{display:flex!important}
+  .content{padding:12px}
+  .grid-4{grid-template-columns:repeat(2,1fr);gap:10px}
+  .grid-3{grid-template-columns:repeat(2,1fr);gap:10px}
+  .grid-2{grid-template-columns:1fr;gap:10px}
+  .pos-layout{flex-direction:column;height:auto}
+  .pos-right{width:100%;min-width:unset;border-left:none;border-top:1px solid var(--border)}
+  .pos-left{max-height:55vh;overflow-y:auto}
+  .items-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
+  .item-card .ic-img{width:44px;height:44px;font-size:22px}
+  .modal{width:95vw!important;max-height:92vh}
+  .form-row{grid-template-columns:1fr}
+  .form-row.col3{grid-template-columns:1fr}
+  .sidebar-bottom .user-info{display:none}
+  .pay-btns{flex-wrap:wrap}
+  table{font-size:12px}
+  tbody td{padding:8px 8px}
+  .stat-card .sc-val{font-size:18px}
+  .topbar-title{font-size:13px}
+}
+@media(min-width:769px){
+  .hamburger{display:none!important}
+  .sidebar-overlay{display:none!important}
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden;font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px}
@@ -252,12 +302,13 @@ tbody td .name{color:var(--text);font-weight:500}
 </head>
 <body>
 
+<div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
 <div class="layout">
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-logo">
       <div class="logo-icon">🍜</div>
-      <div><div class="logo-text">Quán Ăn Sáng Cô Ba</div><div class="logo-sub">POS v2.0 • SQLite</div></div>
+      <div><div class="logo-text">VJP POS</div><div class="logo-sub">POS Pro • SQLite</div></div>
     </div>
     <nav class="nav">
       <div class="nav-section">Chính</div>
@@ -316,7 +367,7 @@ tbody td .name{color:var(--text);font-weight:500}
     <div class="sidebar-bottom">
       <div class="user-card">
         <div class="avatar">CB</div>
-        <div class="user-info"><div class="uname">Cô Ba</div><div class="urole">Quản lý</div></div>
+        <div class="user-info"><div class="uname">Admin</div><div class="urole">Quản lý</div></div>
       </div>
     </div>
   </aside>
@@ -324,6 +375,9 @@ tbody td .name{color:var(--text);font-weight:500}
   <!-- MAIN -->
   <div class="main">
     <div class="topbar">
+      <button class="hamburger" onclick="toggleSidebar()" style="display:none;background:none;border:none;cursor:pointer;padding:6px;border-radius:var(--radius);color:var(--text2);flex-shrink:0" title="Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
       <div class="topbar-title" id="page-title">📊 Tổng quan hôm nay</div>
       <div class="topbar-search">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -335,6 +389,10 @@ tbody td .name{color:var(--text);font-weight:500}
       <button class="topbar-btn secondary" onclick="exportData()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Xuất SQL
+      </button>
+      <button class="topbar-btn secondary" onclick="toggleTheme()" id="theme-btn" title="Chuyển giao diện sáng/tối" style="padding:7px 10px;min-width:38px">
+        <svg id="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       </button>
       <button class="topbar-btn" onclick="showAddProduct()" id="add-btn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -355,7 +413,7 @@ let db;
 const SQL_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.wasm';
 
 // ── IndexedDB helpers (không giới hạn dung lượng, không bị lỗi buffer lớn) ──
-const IDB_NAME = 'pos_quanan', IDB_STORE = 'db_binary', IDB_KEY = 'main';
+const IDB_NAME = 'vjp_pos_db', IDB_STORE = 'db_binary', IDB_KEY = 'main';
 
 function idbOpen() {
   return new Promise((res, rej) => {
@@ -433,7 +491,7 @@ async function initDB() {
     catch { db = new SQL.Database(); createSchema(); seedData(); }
   } else {
     // Thử migrate từ localStorage cũ nếu có
-    const legacy = localStorage.getItem('pos_db_v2');
+    const legacy = localStorage.getItem('vjp_pos_v2');
     if (legacy) {
       try {
         // Dùng cách decode an toàn, không spread
@@ -441,7 +499,7 @@ async function initDB() {
         const buf = new Uint8Array(binStr.length);
         for (let i = 0; i < binStr.length; i++) buf[i] = binStr.charCodeAt(i);
         db = new SQL.Database(buf);
-        localStorage.removeItem('pos_db_v2'); // xóa bản cũ
+        localStorage.removeItem('vjp_pos_v2'); // xóa bản cũ
         await idbSave(db.export());
         toast('✅ Đã chuyển dữ liệu cũ sang IndexedDB!', 'success');
       } catch {
@@ -538,7 +596,7 @@ function createSchema() {
       payment_method TEXT DEFAULT 'cash',
       status TEXT DEFAULT 'completed',
       note TEXT DEFAULT '',
-      cashier TEXT DEFAULT 'Cô Ba',
+      cashier TEXT DEFAULT 'Admin',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(customer_id) REFERENCES customers(id)
     );
@@ -582,7 +640,7 @@ function createSchema() {
       value TEXT
     );
   `);
-  db.run(`INSERT OR IGNORE INTO settings VALUES ('shop_name','Quán Ăn Sáng Cô Ba')`);
+  db.run(`INSERT OR IGNORE INTO settings VALUES ('shop_name','VJP POS')`);
   db.run(`INSERT OR IGNORE INTO settings VALUES ('shop_address','123 Đường Lê Lợi, Q.1, TP.HCM')`);
   db.run(`INSERT OR IGNORE INTO settings VALUES ('shop_phone','0901 234 567')`);
   db.run(`INSERT OR IGNORE INTO settings VALUES ('tax_pct','0')`);
@@ -1030,13 +1088,23 @@ function showInvoiceModal(oid, code, total, method) {
   const items = query(`SELECT * FROM order_items WHERE order_id=?`,[oid]);
   const cust = order.customer_id?query(`SELECT * FROM customers WHERE id=?`,[order.customer_id])[0]:null;
   const shop=getSetting('shop_name'); const addr=getSetting('shop_address'); const phone=getSetting('shop_phone');
+  const qrImg=getSetting('qr_code_img'); const qrBank=getSetting('qr_bank_name'); const qrAcc=getSetting('qr_account');
   const inv = buildInvoiceText(order,items,cust,shop,addr,phone);
+  const qrSection = qrImg ? `
+    <div style="text-align:center;margin:12px 0;padding:12px;background:var(--bg4);border-radius:var(--radius2);border:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">💳 Thanh toán chuyển khoản</div>
+      <img src="${qrImg}" style="width:140px;height:140px;object-fit:contain;border-radius:var(--radius);background:#fff;padding:6px">
+      ${qrBank?`<div style="font-size:12px;font-weight:700;color:var(--text);margin-top:6px">${qrBank}</div>`:''}
+      ${qrAcc?`<div style="font-size:13px;font-weight:700;color:var(--primary);font-family:var(--mono)">${qrAcc}</div>`:''}
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Số tiền: <strong style="color:var(--primary)">${fmtVnd(total)}</strong></div>
+    </div>` : '';
   showModal(`<div class="modal-title">✅ Thanh toán thành công</div>
-    <div style="text-align:center;padding:10px 0;margin-bottom:12px">
-      <div style="font-size:32px;margin-bottom:6px">🎉</div>
-      <div style="font-size:20px;font-weight:700;color:var(--primary);font-family:var(--mono)">${fmtVnd(total)}</div>
+    <div style="text-align:center;padding:8px 0;margin-bottom:8px">
+      <div style="font-size:28px;margin-bottom:4px">🎉</div>
+      <div style="font-size:22px;font-weight:700;color:var(--primary);font-family:var(--mono)">${fmtVnd(total)}</div>
       <div style="font-size:12px;color:var(--text3);margin-top:4px">${method==='cash'?'💵 Tiền mặt':method==='card'?'💳 Thẻ':'📲 Chuyển khoản'} • ${code}</div>
     </div>
+    ${qrSection}
     <div class="invoice-print">${inv}</div>
     <div class="modal-footer">
       <button class="btn primary" onclick="doPrint('${encodeURIComponent(inv)}')">🖨️ In hóa đơn</button>
@@ -1133,7 +1201,41 @@ function renderProducts(page=1) {
   </div>`;
 }
 
+function imgUploadHTML(currentImg='') {
+  const isData = currentImg && (currentImg.startsWith('data:') || currentImg.startsWith('http'));
+  return `<div style="display:flex;gap:12px;align-items:flex-start">
+    <div>
+      <div id="prod-img-preview" style="width:80px;height:80px;border-radius:var(--radius2);overflow:hidden;background:var(--bg4);border:2px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:32px;cursor:pointer;flex-shrink:0" onclick="document.getElementById('prod-img-file').click()">
+        ${isData ? '<img src="'+currentImg+'" style="width:100%;height:100%;object-fit:cover">' : (currentImg||'🍽️')}
+      </div>
+      <input type="file" id="prod-img-file" accept="image/*" style="display:none" onchange="previewProductImg(event)">
+      <div style="font-size:10px;color:var(--text3);margin-top:4px;text-align:center">Click tải ảnh</div>
+    </div>
+    <div style="flex:1">
+      <div class="form-group"><label>Emoji / URL ảnh</label>
+        <input id="f-img" placeholder="🍜 hoặc https://..." value="${currentImg&&!currentImg.startsWith('data:')?currentImg:''}">
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Tải ảnh thực tế hoặc nhập emoji/URL</div>
+    </div>
+  </div>`;
+}
+
+function previewProductImg(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    window._pendingProdImg=ev.target.result;
+    const prev=document.getElementById('prod-img-preview');
+    if(prev) prev.innerHTML=`<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover">`;
+    document.getElementById('f-img').value='[ảnh đã tải]';
+  };
+  reader.readAsDataURL(file);
+}
+
+function getProdImgValue(){ return window._pendingProdImg || (v('f-img')==='[ảnh đã tải]'?'':v('f-img')); }
+
 function showAddProduct(){
+  window._pendingProdImg=null;
   const cats=query(`SELECT * FROM categories`);
   const nextCode='SP'+String((query(`SELECT MAX(CAST(SUBSTR(code,3) AS INTEGER)) as n FROM products`)[0].n||0)+1).padStart(3,'0');
   modalForm('➕ Thêm món mới',`
@@ -1151,22 +1253,21 @@ function showAddProduct(){
       <div class="form-group"><label>Tồn kho</label><input id="f-stock" type="number" value="999"></div>
       <div class="form-group"><label>Tồn tối thiểu</label><input id="f-minstk" type="number" value="5"></div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>Biểu tượng</label><input id="f-icon" placeholder="🍜" maxlength="2"></div>
-      <div class="form-group"><label>URL ảnh</label><input id="f-img" placeholder="https://... hoặc để trống"></div>
-    </div>
+    <div class="form-row col1"><div class="form-group"><label>📷 Ảnh món ăn</label>${imgUploadHTML()}</div></div>
     <div class="form-row col1"><div class="form-group"><label>Mô tả</label><textarea id="f-desc" placeholder="Mô tả ngắn..."></textarea></div></div>`,
     ()=>{
       const name=v('f-name'),price=parseFloat(v('f-price'));
       if(!name||!price){toast('Tên và giá là bắt buộc!','error');return false;}
-      const img=v('f-img')||v('f-icon')||'🍽️';
+      const img=getProdImgValue()||'🍽️';
       run(`INSERT INTO products(code,name,category_id,price,cost,unit,stock,min_stock,image,description) VALUES (?,?,?,?,?,?,?,?,?,?)`,
         [v('f-code'),name,parseInt(v('f-cat')),price,parseFloat(v('f-cost'))||0,v('f-unit'),parseInt(v('f-stock'))||999,parseInt(v('f-minstk'))||5,img,v('f-desc')]);
+      window._pendingProdImg=null;
       toast('Đã thêm món mới!','success'); renderProducts();
     });
 }
 
 function showEditProduct(id){
+  window._pendingProdImg=null;
   const p=query(`SELECT * FROM products WHERE id=?`,[id])[0];
   const cats=query(`SELECT * FROM categories`);
   if(!p) return;
@@ -1185,13 +1286,13 @@ function showEditProduct(id){
       <div class="form-group"><label>Tồn kho</label><input id="f-stock" type="number" value="${p.stock}"></div>
       <div class="form-group"><label>Tồn tối thiểu</label><input id="f-minstk" type="number" value="${p.min_stock}"></div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>Ảnh/Icon</label><input id="f-img" value="${p.image}"></div>
-      <div class="form-group"><label>Trạng thái</label><select id="f-active"><option value="1" ${p.is_active?'selected':''}>Hoạt động</option><option value="0" ${!p.is_active?'selected':''}>Dừng bán</option></select></div>
-    </div>`,
+    <div class="form-row col1"><div class="form-group"><label>📷 Ảnh món ăn</label>${imgUploadHTML(p.image||'')}</div></div>
+    <div class="form-row col1"><div class="form-group"><label>Trạng thái</label><select id="f-active"><option value="1" ${p.is_active?'selected':''}>Hoạt động</option><option value="0" ${!p.is_active?'selected':''}>Dừng bán</option></select></div></div>`,
     ()=>{
+      const img=getProdImgValue()||(p.image||'🍽️');
       run(`UPDATE products SET code=?,name=?,category_id=?,price=?,cost=?,unit=?,stock=?,min_stock=?,image=?,is_active=? WHERE id=?`,
-        [v('f-code'),v('f-name'),parseInt(v('f-cat')),parseFloat(v('f-price')),parseFloat(v('f-cost'))||0,v('f-unit'),parseInt(v('f-stock')),parseInt(v('f-minstk')),v('f-img'),parseInt(v('f-active')),id]);
+        [v('f-code'),v('f-name'),parseInt(v('f-cat')),parseFloat(v('f-price')),parseFloat(v('f-cost'))||0,v('f-unit'),parseInt(v('f-stock')),parseInt(v('f-minstk')),img,parseInt(v('f-active')),id]);
+      window._pendingProdImg=null;
       toast('Đã cập nhật!','success'); renderProducts();
     });
 }
@@ -1234,7 +1335,10 @@ function renderOrders(page=1) {
         <td><span class="tag ${o.payment_method==='cash'?'green':o.payment_method==='card'?'blue':'purple'}">${o.payment_method==='cash'?'Tiền mặt':o.payment_method==='card'?'Thẻ':'CK'}</span></td>
         <td style="font-family:var(--mono);color:var(--amber)">+${o.points_earned}</td>
         <td style="color:var(--text3);font-size:12px">${o.created_at.slice(0,16)}</td>
-        <td><button class="btn sm" onclick="event.stopPropagation();showOrderDetail(${o.id})">Chi tiết</button></td>
+        <td><div style="display:flex;gap:4px" onclick="event.stopPropagation()">
+          <button class="btn sm" onclick="showOrderDetail(${o.id})">Chi tiết</button>
+          <button class="btn sm danger" onclick="deleteOrder(${o.id},'${o.order_code}',${o.customer_id||0},${o.points_earned||0},${o.total})">🗑️</button>
+        </div></td>
       </tr>`).join('')}
       </tbody>
     </table></div>
@@ -1263,7 +1367,11 @@ function showOrderDetail(oid) {
       </div>
     </div>
     ${order.note?`<div style="font-size:12px;color:var(--text2)">Ghi chú: ${order.note}</div>`:''}
-    <div class="modal-footer"><button class="btn primary" onclick="reprintOrder(${oid})">🖨️ In lại</button><button class="btn" onclick="closeModal()">Đóng</button></div>`,'');
+    <div class="modal-footer">
+      <button class="btn danger" onclick="closeModal();deleteOrder(${oid},'${order.order_code}',${order.customer_id||0},${order.points_earned||0},${order.total})">🗑️ Xóa đơn</button>
+      <button class="btn primary" onclick="reprintOrder(${oid})">🖨️ In lại</button>
+      <button class="btn" onclick="closeModal()">Đóng</button>
+    </div>`,'');
 }
 
 function reprintOrder(oid) {
@@ -1272,6 +1380,20 @@ function reprintOrder(oid) {
   const cust=order.customer_id?query(`SELECT * FROM customers WHERE id=?`,[order.customer_id])[0]:null;
   const inv=buildInvoiceText(order,items,cust,getSetting('shop_name'),getSetting('shop_address'),getSetting('shop_phone'));
   doPrint(encodeURIComponent(inv));
+}
+
+function deleteOrder(oid, code, custId, pts, total){
+  if(!confirm(`Xóa đơn hàng ${code}?
+Hành động này sẽ hoàn điểm và không thể hoàn tác.`)) return;
+  // Hoàn điểm khách hàng nếu có
+  if(custId && pts>0){
+    run(`UPDATE customers SET points=MAX(0,points-?),total_spent=MAX(0,total_spent-?),visit_count=MAX(0,visit_count-1) WHERE id=?`,[pts,total,custId]);
+  }
+  run(`DELETE FROM order_items WHERE order_id=?`,[oid]);
+  run(`DELETE FROM orders WHERE id=?`,[oid]);
+  toast(`Đã xóa đơn ${code}`,'success');
+  if(currentPage==='orders') renderOrders();
+  else if(currentPage==='dashboard') renderDashboard();
 }
 
 // ===================== CUSTOMERS =====================
@@ -1410,105 +1532,339 @@ function renderLoyalty() {
 
 // ===================== INVENTORY =====================
 function renderInventory() {
-  const prods=query(`SELECT p.*,c.name as cat_name FROM products p LEFT JOIN categories c ON c.id=p.category_id WHERE p.is_active=1 ORDER BY p.stock ASC`);
-  const logs=query(`SELECT il.*,p.name as prod_name FROM inventory_log il JOIN products p ON p.id=il.product_id ORDER BY il.id DESC LIMIT 20`);
+  const search=(document.getElementById('inv-search')||{}).value||'';
+  const filterStatus=(document.getElementById('inv-status')||{}).value||'all';
+  let where='WHERE p.is_active=1';const params=[];
+  if(search){where+=` AND (p.name LIKE ? OR p.code LIKE ?)`;params.push(`%${search}%`,`%${search}%`);}
+  const prods=query(`SELECT p.*,c.name as cat_name FROM products p LEFT JOIN categories c ON c.id=p.category_id ${where} ORDER BY p.stock ASC`,params);
+  const filtered = filterStatus==='low'?prods.filter(p=>p.stock<=p.min_stock*2):filterStatus==='out'?prods.filter(p=>p.stock<=0):prods;
+
+  const logPage=window._invLogPage||1;
+  const logTotal=query(`SELECT COUNT(*) as n FROM inventory_log`)[0].n;
+  const logPages=Math.ceil(logTotal/15);
+  const logs=query(`SELECT il.*,p.name as prod_name FROM inventory_log il JOIN products p ON p.id=il.product_id ORDER BY il.id DESC LIMIT 15 OFFSET ${(logPage-1)*15}`);
+
+  const totalStockVal=prods.reduce((s,p)=>s+p.stock*p.cost,0);
+  const lowCount=prods.filter(p=>p.stock<=p.min_stock).length;
+
   document.getElementById('content-area').innerHTML=`
+  <div class="grid-3" style="margin-bottom:14px">
+    <div class="stat-card blue"><div class="sc-icon">📦</div><div class="sc-label">Tổng sản phẩm</div><div class="sc-val">${prods.length}</div><div class="sc-sub" style="color:var(--text3)">Đang kinh doanh</div></div>
+    <div class="stat-card amber"><div class="sc-icon">⚠️</div><div class="sc-label">Sắp hết kho</div><div class="sc-val">${lowCount}</div><div class="sc-sub" style="color:var(--amber)">Cần nhập thêm</div></div>
+    <div class="stat-card green"><div class="sc-icon">💰</div><div class="sc-label">Giá trị tồn kho</div><div class="sc-val">${fmtK(totalStockVal)}</div><div class="sc-sub" style="color:var(--text3)">Tính theo giá vốn</div></div>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
+    <input type="text" id="inv-search" placeholder="🔍 Tìm sản phẩm..." onkeyup="renderInventory()" value="${search}" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 12px;color:var(--text);font-family:var(--font);outline:none;flex:1;min-width:160px;max-width:280px">
+    <select id="inv-status" onchange="renderInventory()" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;color:var(--text);font-family:var(--font);outline:none">
+      <option value="all" ${filterStatus==='all'?'selected':''}>Tất cả</option>
+      <option value="low" ${filterStatus==='low'?'selected':''}>⚠️ Sắp hết</option>
+      <option value="out" ${filterStatus==='out'?'selected':''}>🔴 Hết hàng</option>
+    </select>
+    <button class="btn primary" onclick="showAddInventory()">+ Nhập/Xuất kho</button>
+    <button class="btn" onclick="showSetStockAll()">✏️ Điều chỉnh hàng loạt</button>
+  </div>
+
   <div class="grid-2">
     <div class="card">
-      <div class="section-header"><h3>📦 Tồn kho hiện tại</h3></div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>Món ăn</th><th>Danh mục</th><th>Tồn kho</th><th>Tối thiểu</th><th>Trạng thái</th></tr></thead>
-        <tbody>${prods.map(p=>`<tr>
-          <td><div style="display:flex;align-items:center;gap:8px"><span>${p.image||'🍽️'}</span><span class="name">${p.name}</span></div></td>
-          <td style="color:var(--text3)">${p.cat_name||''}</td>
-          <td style="font-family:var(--mono);font-weight:600">${p.stock} ${p.unit}</td>
-          <td style="font-family:var(--mono);color:var(--text3)">${p.min_stock}</td>
-          <td><span class="tag ${p.stock<=p.min_stock?'red':p.stock<=p.min_stock*2?'amber':'green'}">${p.stock<=p.min_stock?'Hết hàng':p.stock<=p.min_stock*2?'Sắp hết':'Đủ hàng'}</span></td>
+      <div class="section-header"><h3>📦 Tồn kho hiện tại <span style="font-size:11px;color:var(--text3);font-weight:400">(${filtered.length} sản phẩm)</span></h3></div>
+      <div class="table-wrap" style="max-height:420px;overflow-y:auto"><table>
+        <thead><tr><th>Sản phẩm</th><th>Danh mục</th><th>Tồn</th><th>Tối thiểu</th><th>Trạng thái</th><th style="width:80px">Tác vụ</th></tr></thead>
+        <tbody>${filtered.map(p=>`<tr>
+          <td><div style="display:flex;align-items:center;gap:8px">
+            <div style="width:28px;height:28px;border-radius:6px;overflow:hidden;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">
+              ${p.image&&(p.image.startsWith('data:')||p.image.startsWith('http'))?`<img src="${p.image}" style="width:100%;height:100%;object-fit:cover">`:(p.image||'🍽️')}
+            </div>
+            <div><div class="name" style="font-size:12px">${p.name}</div><div style="font-size:10px;color:var(--text3)">${p.code}</div></div>
+          </div></td>
+          <td style="color:var(--text3);font-size:12px">${p.cat_name||'—'}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-family:var(--mono);font-weight:700;font-size:13px">${p.stock}</span>
+              <span style="font-size:10px;color:var(--text3)">${p.unit}</span>
+            </div>
+            <div class="progress-bar" style="margin-top:3px;width:60px"><div class="progress-fill" style="width:${Math.min(100,p.min_stock>0?p.stock/p.min_stock*50:50)}%;background:${p.stock<=0?'var(--red)':p.stock<=p.min_stock?'var(--amber)':'var(--green)'}"></div></div>
+          </td>
+          <td style="font-family:var(--mono);color:var(--text3);font-size:12px">${p.min_stock}</td>
+          <td><span class="tag ${p.stock<=0?'red':p.stock<=p.min_stock?'red':p.stock<=p.min_stock*2?'amber':'green'}">${p.stock<=0?'Hết hàng':p.stock<=p.min_stock?'Sắp hết':p.stock<=p.min_stock*2?'Ít':'Đủ'}</span></td>
+          <td><div style="display:flex;gap:3px">
+            <button class="btn sm success" onclick="quickImport(${p.id},'${p.name.replace(/'/g,"\\'")}',${p.stock})" title="Nhập nhanh">+</button>
+            <button class="btn sm" onclick="editStockEntry(${p.id},'${p.name.replace(/'/g,"\\'")}',${p.stock},${p.min_stock})" title="Điều chỉnh">✏️</button>
+          </div></td>
         </tr>`).join('')}
         </tbody>
       </table></div>
     </div>
+
     <div class="card">
-      <div class="section-header"><h3>📋 Lịch sử nhập/xuất kho</h3></div>
-      ${logs.length?`<div class="table-wrap"><table>
-        <thead><tr><th>Sản phẩm</th><th>Loại</th><th>SL thay đổi</th><th>Ghi chú</th><th>Thời gian</th></tr></thead>
+      <div class="section-header">
+        <h3>📋 Nhật ký nhập/xuất kho</h3>
+        <button class="btn sm danger" onclick="clearInventoryLog()" style="font-size:11px">🗑️ Xóa nhật ký</button>
+      </div>
+      ${logs.length?`<div class="table-wrap" style="max-height:360px;overflow-y:auto"><table>
+        <thead><tr><th>Sản phẩm</th><th>Loại</th><th>SL</th><th>Ghi chú</th><th>Thời gian</th><th></th></tr></thead>
         <tbody>${logs.map(l=>`<tr>
-          <td class="name">${l.prod_name}</td>
+          <td class="name" style="font-size:12px">${l.prod_name}</td>
           <td><span class="tag ${l.type==='import'?'green':'amber'}">${l.type==='import'?'Nhập':'Xuất'}</span></td>
-          <td style="font-family:var(--mono);color:${l.qty_change>0?'var(--green)':'var(--red)'}">${l.qty_change>0?'+':''}${l.qty_change}</td>
-          <td style="color:var(--text3)">${l.note||'—'}</td>
-          <td style="color:var(--text3);font-size:12px">${l.created_at.slice(0,16)}</td>
+          <td style="font-family:var(--mono);color:${l.qty_change>0?'var(--green)':'var(--red)'};font-weight:700">${l.qty_change>0?'+':''}${l.qty_change}</td>
+          <td style="color:var(--text3);font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis">${l.note||'—'}</td>
+          <td style="color:var(--text3);font-size:11px;white-space:nowrap">${l.created_at.slice(0,16)}</td>
+          <td><button class="btn sm danger" onclick="deleteInventoryLog(${l.id},${l.product_id},${l.qty_change})" title="Hoàn tác">↩</button></td>
         </tr>`).join('')}</tbody>
-      </table></div>`:'<div class="empty-state"><p>Chưa có nhật ký kho</p></div>'}
+      </table></div>
+      ${logPages>1?`<div class="pagination">${Array.from({length:logPages},(_,i)=>`<button class="page-btn ${logPage===i+1?'active':''}" onclick="setInvLogPage(${i+1})">${i+1}</button>`).join('')}</div>`:''}
+      `:'<div class="empty-state"><p>Chưa có nhật ký kho</p></div>'}
     </div>
   </div>`;
 }
 
+function setInvLogPage(p){window._invLogPage=p;renderInventory();}
+
 function showAddInventory(){
   const prods=query(`SELECT * FROM products WHERE is_active=1 ORDER BY name`);
-  modalForm('📦 Nhập/Xuất kho',`
+  modalForm('📦 Giao dịch kho',`
     <div class="form-row">
-      <div class="form-group"><label>Sản phẩm *</label><select id="f-prod">${prods.map(p=>`<option value="${p.id}">${p.name} (tồn: ${p.stock})</option>`).join('')}</select></div>
-      <div class="form-group"><label>Loại giao dịch</label><select id="f-type"><option value="import">Nhập kho (+)</option><option value="export">Xuất kho (-)</option></select></div>
+      <div class="form-group"><label>Sản phẩm *</label>
+        <select id="f-prod" onchange="updateStockPreview()">${prods.map(p=>`<option value="${p.id}" data-stock="${p.stock}">${p.name} (tồn: ${p.stock})</option>`).join('')}</select>
+      </div>
+      <div class="form-group"><label>Loại giao dịch</label>
+        <select id="f-type" onchange="updateStockPreview()">
+          <option value="import">📥 Nhập kho (+)</option>
+          <option value="export">📤 Xuất kho (-)</option>
+          <option value="adjust">⚙️ Điều chỉnh (set)</option>
+        </select>
+      </div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Số lượng *</label><input id="f-qty" type="number" placeholder="50" min="1"></div>
-      <div class="form-group"><label>Ghi chú</label><input id="f-note" placeholder="Lý do..."></div>
+      <div class="form-group"><label>Số lượng *</label><input id="f-qty" type="number" placeholder="50" min="0" oninput="updateStockPreview()"></div>
+      <div class="form-group"><label>Ghi chú</label><input id="f-note" placeholder="Lý do, nguồn hàng..."></div>
+    </div>
+    <div id="stock-preview" style="padding:10px;background:var(--bg4);border-radius:var(--radius);font-size:13px;color:var(--text2);text-align:center">
+      Chọn sản phẩm và nhập số lượng để xem trước
     </div>`,
     ()=>{
-      const pid=parseInt(v('f-prod'));const qty=parseInt(v('f-qty'));const type=v('f-type');
-      if(!pid||!qty){toast('Chọn sản phẩm và số lượng!','error');return false;}
-      const change=type==='import'?qty:-qty;
-      run(`UPDATE products SET stock=MAX(0,stock+?) WHERE id=?`,[change,pid]);
-      run(`INSERT INTO inventory_log(product_id,type,qty_change,note) VALUES(?,?,?,?)`,[pid,type,change,v('f-note')]);
-      toast(`Đã cập nhật kho!`,'success'); renderInventory();
+      const pid=parseInt(v('f-prod'));const qty=parseInt(v('f-qty')||0);const type=v('f-type');
+      if(!pid){toast('Chọn sản phẩm!','error');return false;}
+      const prod=query(`SELECT stock FROM products WHERE id=?`,[pid])[0];
+      if(type==='adjust'){
+        if(isNaN(qty)||qty<0){toast('Nhập số lượng tồn kho mới!','error');return false;}
+        const diff=qty-prod.stock;
+        run(`UPDATE products SET stock=? WHERE id=?`,[qty,pid]);
+        run(`INSERT INTO inventory_log(product_id,type,qty_change,note) VALUES(?,?,?,?)`,[pid,'adjust',diff,v('f-note')||`Điều chỉnh → ${qty}`]);
+      } else {
+        if(!qty||qty<=0){toast('Số lượng phải lớn hơn 0!','error');return false;}
+        const change=type==='import'?qty:-qty;
+        run(`UPDATE products SET stock=MAX(0,stock+?) WHERE id=?`,[change,pid]);
+        run(`INSERT INTO inventory_log(product_id,type,qty_change,note) VALUES(?,?,?,?)`,[pid,type,change,v('f-note')]);
+      }
+      toast('Đã cập nhật kho!','success'); renderInventory();
     });
+}
+
+function updateStockPreview(){
+  const sel=document.getElementById('f-prod');
+  const type=(document.getElementById('f-type')||{}).value;
+  const qty=parseInt((document.getElementById('f-qty')||{}).value)||0;
+  const prev=document.getElementById('stock-preview');
+  if(!sel||!prev) return;
+  const currentStock=parseInt(sel.selectedOptions[0]?.dataset?.stock||0);
+  let newStock=currentStock;
+  if(type==='import') newStock=currentStock+qty;
+  else if(type==='export') newStock=Math.max(0,currentStock-qty);
+  else if(type==='adjust') newStock=qty;
+  const color=newStock<=0?'var(--red)':newStock<5?'var(--amber)':'var(--green)';
+  prev.innerHTML=`<div style="display:flex;justify-content:center;gap:20px;align-items:center">
+    <div><div style="font-size:11px;color:var(--text3)">Tồn hiện tại</div><div style="font-size:18px;font-weight:700;font-family:var(--mono)">${currentStock}</div></div>
+    <div style="font-size:20px;color:var(--text3)">→</div>
+    <div><div style="font-size:11px;color:var(--text3)">Sau giao dịch</div><div style="font-size:18px;font-weight:700;font-family:var(--mono);color:${color}">${newStock}</div></div>
+  </div>`;
+}
+
+function quickImport(pid, name, currentStock){
+  modalForm(`📥 Nhập nhanh: ${name}`,`
+    <div style="text-align:center;padding:8px 0 14px">
+      <div style="font-size:12px;color:var(--text3)">Tồn kho hiện tại</div>
+      <div style="font-size:28px;font-weight:700;font-family:var(--mono)">${currentStock}</div>
+    </div>
+    <div class="form-row col1"><div class="form-group"><label>Số lượng nhập thêm *</label><input id="f-qty" type="number" placeholder="50" min="1" autofocus></div></div>
+    <div class="form-row col1"><div class="form-group"><label>Ghi chú (tuỳ chọn)</label><input id="f-note" placeholder="Nguồn hàng, nhà cung cấp..."></div></div>`,
+    ()=>{
+      const qty=parseInt(v('f-qty'));
+      if(!qty||qty<=0){toast('Nhập số lượng hợp lệ!','error');return false;}
+      run(`UPDATE products SET stock=stock+? WHERE id=?`,[qty,pid]);
+      run(`INSERT INTO inventory_log(product_id,type,qty_change,note) VALUES(?,?,?,?)`,[pid,'import',qty,v('f-note')||'Nhập nhanh']);
+      toast(`Đã nhập ${qty} ${name}!`,'success'); renderInventory();
+    });
+}
+
+function editStockEntry(pid, name, currentStock, minStock){
+  modalForm(`✏️ Điều chỉnh kho: ${name}`,`
+    <div class="form-row col3">
+      <div class="form-group"><label>Loại</label>
+        <select id="f-type">
+          <option value="import">📥 Nhập kho</option>
+          <option value="export">📤 Xuất kho</option>
+          <option value="adjust">⚙️ Đặt tồn kho</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Số lượng</label><input id="f-qty" type="number" placeholder="${currentStock}" min="0"></div>
+      <div class="form-group"><label>Tồn tối thiểu</label><input id="f-minstk" type="number" value="${minStock}"></div>
+    </div>
+    <div class="form-row col1"><div class="form-group"><label>Ghi chú</label><input id="f-note" placeholder="Lý do điều chỉnh..."></div></div>
+    <div style="padding:8px 10px;background:var(--bg4);border-radius:var(--radius);font-size:12px;color:var(--text3)">Tồn hiện tại: <strong style="color:var(--text)">${currentStock}</strong></div>`,
+    ()=>{
+      const type=v('f-type');const qty=parseInt(v('f-qty'));const ms=parseInt(v('f-minstk'))||minStock;
+      // Update min_stock
+      run(`UPDATE products SET min_stock=? WHERE id=?`,[ms,pid]);
+      if(!isNaN(qty)&&qty>=0){
+        const change=type==='adjust'?(qty-currentStock):type==='import'?qty:-qty;
+        const newStock=type==='adjust'?qty:Math.max(0,currentStock+(type==='import'?qty:-qty));
+        run(`UPDATE products SET stock=? WHERE id=?`,[Math.max(0,newStock),pid]);
+        if(change!==0) run(`INSERT INTO inventory_log(product_id,type,qty_change,note) VALUES(?,?,?,?)`,[pid,type,change,v('f-note')||`Điều chỉnh`]);
+      }
+      toast('Đã cập nhật!','success'); renderInventory();
+    });
+}
+
+function showSetStockAll(){
+  const prods=query(`SELECT * FROM products WHERE is_active=1 ORDER BY name`);
+  modalForm('✏️ Điều chỉnh tồn kho hàng loạt',`
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Nhập số tồn kho mới. Để trống = không thay đổi.</div>
+    <div style="max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
+      ${prods.map(p=>`<div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--bg3);border-radius:var(--radius)">
+        <span style="flex:1;font-size:13px;font-weight:500">${p.name}</span>
+        <span style="font-size:11px;color:var(--text3)">tồn: ${p.stock}</span>
+        <input type="number" id="bulk-${p.id}" placeholder="${p.stock}" min="0" style="width:80px;background:var(--bg4);border:1px solid var(--border);border-radius:var(--radius);padding:5px 8px;color:var(--text);font-family:var(--mono);text-align:center;outline:none">
+      </div>`).join('')}
+    </div>`,
+    ()=>{
+      let updated=0;
+      prods.forEach(p=>{
+        const el=document.getElementById(`bulk-${p.id}`);
+        if(!el||el.value==='') return;
+        const newQty=parseInt(el.value);
+        if(isNaN(newQty)||newQty<0) return;
+        const diff=newQty-p.stock;
+        run(`UPDATE products SET stock=? WHERE id=?`,[newQty,p.id]);
+        if(diff!==0) run(`INSERT INTO inventory_log(product_id,type,qty_change,note) VALUES(?,?,?,?)`,[p.id,'adjust',diff,'Điều chỉnh hàng loạt']);
+        updated++;
+      });
+      toast(`Đã cập nhật ${updated} sản phẩm!`,'success'); renderInventory();
+    },'wide');
+}
+
+function deleteInventoryLog(lid, pid, qtyChange){
+  if(!confirm('Hoàn tác giao dịch kho này? Tồn kho sẽ được khôi phục.')) return;
+  // Hoàn tác thay đổi tồn kho
+  run(`UPDATE products SET stock=MAX(0,stock-?) WHERE id=?`,[qtyChange,pid]);
+  run(`DELETE FROM inventory_log WHERE id=?`,[lid]);
+  toast('Đã hoàn tác giao dịch kho','success'); renderInventory();
+}
+
+function clearInventoryLog(){
+  if(!confirm('Xóa toàn bộ nhật ký kho? Tồn kho hiện tại không bị ảnh hưởng.')) return;
+  run(`DELETE FROM inventory_log`);
+  toast('Đã xóa nhật ký kho','success'); renderInventory();
 }
 
 // ===================== REPORTS =====================
 function renderReports() {
-  const period=(document.getElementById('rpt-period')||{}).value||'7';
-  const byDay=query(`SELECT date(created_at) as day,SUM(total) as rev,COUNT(*) as cnt,COALESCE(SUM(total-discount_amt),0) as net,COALESCE(SUM((SELECT COALESCE(SUM(cost*qty),0) FROM order_items oi WHERE oi.order_id=orders.id)),0) as cogs FROM orders WHERE date(created_at)>=date('now','-${period} days') AND status='completed' GROUP BY day ORDER BY day`);
-  const totalRev=byDay.reduce((s,r)=>s+r.rev,0);
-  const totalOrd=byDay.reduce((s,r)=>s+r.cnt,0);
-  const byMethod=query(`SELECT payment_method,COUNT(*) as cnt,SUM(total) as rev FROM orders WHERE date(created_at)>=date('now','-${period} days') AND status='completed' GROUP BY payment_method`);
-  const topProd=query(`SELECT p.name,p.image,SUM(oi.qty) as sold,SUM(oi.total) as rev,SUM(oi.qty*(oi.price-oi.cost)) as profit FROM order_items oi JOIN products p ON p.id=oi.product_id JOIN orders o ON o.id=oi.order_id WHERE date(o.created_at)>=date('now','-${period} days') AND o.status='completed' GROUP BY oi.product_id ORDER BY rev DESC LIMIT 8`);
-  const expenses=query(`SELECT category,SUM(amount) as total FROM expenses WHERE expense_date>=date('now','-${period} days') GROUP BY category`);
-  const totalExp=expenses.reduce((s,e)=>s+e.total,0);
-  const profit=totalRev-totalExp;
+  const mode=window._rptMode||(document.getElementById('rpt-mode')||{}).value||'day';
+  const _rv=window._rptVals||{};const selDay=_rv['rpt-sel-day']||(document.getElementById('rpt-sel-day')||{}).value||new Date().toISOString().slice(0,10);
+  const selMonth=_rv['rpt-sel-month']||(document.getElementById('rpt-sel-month')||{}).value||new Date().toISOString().slice(0,7);
+  const selYear=_rv['rpt-sel-year']||(document.getElementById('rpt-sel-year')||{}).value||String(new Date().getFullYear()); window._rptMode=null; window._rptVals=null;
+
+  let dateWhere, dateLabel, groupExpr, fmtLabel;
+  if(mode==='day'){
+    dateWhere=`date(created_at)='${selDay}'`;
+    dateLabel=new Date(selDay).toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
+    groupExpr=`strftime('%H',created_at)`;
+    fmtLabel=h=>h+':00';
+  } else if(mode==='month'){
+    dateWhere=`strftime('%Y-%m',created_at)='${selMonth}'`;
+    dateLabel='Tháng '+selMonth.slice(5)+'/'+selMonth.slice(0,4);
+    groupExpr=`date(created_at)`;
+    fmtLabel=d=>new Date(d).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'});
+  } else {
+    dateWhere=`strftime('%Y',created_at)='${selYear}'`;
+    dateLabel='Năm '+selYear;
+    groupExpr=`strftime('%Y-%m',created_at)`;
+    fmtLabel=m=>{const[y,mo]=m.split('-');return `T${parseInt(mo)}/${y.slice(2)}`;};
+  }
+
+  const byPeriod=query(`SELECT ${groupExpr} as period,SUM(total) as rev,COUNT(*) as cnt FROM orders WHERE ${dateWhere} AND status='completed' GROUP BY period ORDER BY period`);
+  const totalRev=byPeriod.reduce((s,r)=>s+(r.rev||0),0);
+  const totalOrd=byPeriod.reduce((s,r)=>s+(r.cnt||0),0);
+  const byMethod=query(`SELECT payment_method,COUNT(*) as cnt,SUM(total) as rev FROM orders WHERE ${dateWhere} AND status='completed' GROUP BY payment_method`);
+  const topProd=query(`SELECT p.name,p.image,SUM(oi.qty) as sold,SUM(oi.total) as rev FROM order_items oi JOIN products p ON p.id=oi.product_id JOIN orders o ON o.id=oi.order_id WHERE ${dateWhere} AND o.status='completed' GROUP BY oi.product_id ORDER BY rev DESC LIMIT 8`);
+
+  // Tính lợi nhuận gộp từ giá vốn
+  const cogsPeriod=query(`SELECT COALESCE(SUM(oi.cost*oi.qty),0) as cogs FROM order_items oi JOIN orders o ON o.id=oi.order_id WHERE ${dateWhere} AND o.status='completed'`);
+  const cogs=(cogsPeriod[0]||{cogs:0}).cogs||0;
+  const grossProfit=totalRev-cogs;
+
+  const expWhere = mode==='day'?`expense_date='${selDay}'`:mode==='month'?`strftime('%Y-%m',expense_date)='${selMonth}'`:`strftime('%Y',expense_date)='${selYear}'`;
+  const expenses=query(`SELECT category,SUM(amount) as total FROM expenses WHERE ${expWhere} GROUP BY category`);
+  const totalExp=expenses.reduce((s,e)=>s+(e.total||0),0);
+  const netProfit=totalRev-totalExp;
+
+  // Số liệu so sánh kỳ trước
+  let prevWhere;
+  if(mode==='day'){const d=new Date(selDay);d.setDate(d.getDate()-1);prevWhere=`date(created_at)='${d.toISOString().slice(0,10)}'`;}
+  else if(mode==='month'){const[y,m]=selMonth.split('-');const d=new Date(parseInt(y),parseInt(m)-2,1);prevWhere=`strftime('%Y-%m',created_at)='${d.toISOString().slice(0,7)}'`;}
+  else{prevWhere=`strftime('%Y',created_at)='${parseInt(selYear)-1}'`;}
+  const prev=query(`SELECT COALESCE(SUM(total),0) as rev,COUNT(*) as cnt FROM orders WHERE ${prevWhere} AND status='completed'`)[0]||{rev:0,cnt:0};
+  const revDiff=prev.rev>0?(((totalRev-prev.rev)/prev.rev)*100).toFixed(1):null;
+
+  // Render chi tiết đơn hàng theo ngày (chỉ hiện ở mode day)
+  const orderList = mode==='day' ? query(`SELECT o.*,COALESCE(c.name,'Khách lẻ') as cust_name FROM orders o LEFT JOIN customers c ON c.id=o.customer_id WHERE ${dateWhere} AND o.status='completed' ORDER BY o.id DESC LIMIT 30`) : [];
 
   document.getElementById('content-area').innerHTML=`
-  <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
-    <select id="rpt-period" onchange="renderReports()" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 12px;color:var(--text);font-family:var(--font);outline:none">
-      <option value="7" ${period==='7'?'selected':''}>7 ngày qua</option>
-      <option value="30" ${period==='30'?'selected':''}>30 ngày qua</option>
-      <option value="90" ${period==='90'?'selected':''}>90 ngày qua</option>
-    </select>
-    <span style="font-size:12px;color:var(--text3)">Từ ${new Date(Date.now()-parseInt(period)*86400000).toLocaleDateString('vi-VN')} đến hôm nay</span>
+  <!-- Filter bar -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;background:var(--bg2);padding:12px;border-radius:var(--radius2);border:1px solid var(--border)">
+    <div style="display:flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+      <button onclick="switchRptMode('day')" id="rbt-day" style="padding:7px 14px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font);transition:all .15s;background:${mode==='day'?'var(--primary)':'var(--bg3)'};color:${mode==='day'?'#fff':'var(--text2)'}">📅 Ngày</button>
+      <button onclick="switchRptMode('month')" id="rbt-month" style="padding:7px 14px;border:none;border-left:1px solid var(--border);cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font);transition:all .15s;background:${mode==='month'?'var(--primary)':'var(--bg3)'};color:${mode==='month'?'#fff':'var(--text2)'}">📆 Tháng</button>
+      <button onclick="switchRptMode('year')" id="rbt-year" style="padding:7px 14px;border:none;border-left:1px solid var(--border);cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font);transition:all .15s;background:${mode==='year'?'var(--primary)':'var(--bg3)'};color:${mode==='year'?'#fff':'var(--text2)'}">📊 Năm</button>
+    </div>
+    <div id="rpt-date-picker" style="display:flex;gap:8px;align-items:center">
+      ${mode==='day'?`<input type="date" id="rpt-sel-day" value="${selDay}" onchange="renderReports()" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;color:var(--text);font-family:var(--font);outline:none">`:
+        mode==='month'?`<input type="month" id="rpt-sel-month" value="${selMonth}" onchange="renderReports()" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;color:var(--text);font-family:var(--font);outline:none">`:
+        `<select id="rpt-sel-year" onchange="renderReports()" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;color:var(--text);font-family:var(--font);outline:none">
+          ${Array.from({length:5},(_,i)=>new Date().getFullYear()-i).map(y=>`<option value="${y}" ${y==selYear?'selected':''}>${y}</option>`).join('')}
+        </select>`}
+    </div>
+    <input type="hidden" id="rpt-mode" value="${mode}">
+    <span style="font-size:12px;color:var(--text3);margin-left:4px">📋 ${dateLabel}</span>
+    ${revDiff!==null?`<span style="font-size:12px;font-weight:700;color:${revDiff>=0?'var(--green)':'var(--red)'};margin-left:auto">${revDiff>=0?'▲':'▼'} ${Math.abs(revDiff)}% so kỳ trước</span>`:''}
   </div>
+
+  <!-- KPI -->
   <div class="grid-4" style="margin-bottom:16px">
-    <div class="stat-card blue"><div class="sc-icon">💰</div><div class="sc-label">Tổng doanh thu</div><div class="sc-val">${fmtK(totalRev)}</div></div>
-    <div class="stat-card green"><div class="sc-icon">📈</div><div class="sc-label">Lợi nhuận</div><div class="sc-val">${fmtK(profit)}</div><div class="sc-sub" style="color:${profit>=0?'var(--green)':'var(--red)'}">${totalRev>0?Math.round(profit/totalRev*100):0}% margin</div></div>
-    <div class="stat-card amber"><div class="sc-icon">🧾</div><div class="sc-label">Số đơn hàng</div><div class="sc-val">${totalOrd}</div></div>
-    <div class="stat-card red"><div class="sc-icon">💸</div><div class="sc-label">Tổng chi phí</div><div class="sc-val">${fmtK(totalExp)}</div></div>
+    <div class="stat-card blue"><div class="sc-icon">💰</div><div class="sc-label">Doanh thu</div><div class="sc-val">${fmtK(totalRev)}</div><div class="sc-sub" style="color:var(--text3)">Kỳ trước: ${fmtK(prev.rev)}</div></div>
+    <div class="stat-card green"><div class="sc-icon">📈</div><div class="sc-label">Lợi nhuận ròng</div><div class="sc-val">${fmtK(netProfit)}</div><div class="sc-sub" style="color:${netProfit>=0?'var(--green)':'var(--red)'}">Gộp: ${fmtK(grossProfit)}</div></div>
+    <div class="stat-card amber"><div class="sc-icon">🧾</div><div class="sc-label">Số đơn hàng</div><div class="sc-val">${totalOrd}</div><div class="sc-sub" style="color:var(--text3)">TB/đơn: ${fmtK(totalOrd?totalRev/totalOrd:0)}</div></div>
+    <div class="stat-card red"><div class="sc-icon">💸</div><div class="sc-label">Chi phí</div><div class="sc-val">${fmtK(totalExp)}</div><div class="sc-sub" style="color:var(--text3)">Giá vốn: ${fmtK(cogs)}</div></div>
   </div>
+
   <div class="grid-2">
     <div class="card">
-      <div class="section-header"><h3>📈 Doanh thu theo ngày</h3></div>
+      <div class="section-header"><h3>📈 Biểu đồ doanh thu — ${dateLabel}</h3></div>
       <div class="chart-wrap" style="height:220px"><canvas id="rptChart"></canvas></div>
     </div>
     <div class="card">
       <div class="section-header"><h3>💳 Phương thức thanh toán</h3></div>
-      <div class="chart-wrap" style="height:220px"><canvas id="payChart"></canvas></div>
+      ${byMethod.length?`<div class="chart-wrap" style="height:220px"><canvas id="payChart"></canvas></div>`:'<div class="empty-state" style="padding:40px"><p>Không có dữ liệu</p></div>'}
     </div>
   </div>
-  <div class="grid-2">
+
+  <div class="grid-2" style="margin-top:0">
     <div class="card">
       <div class="section-header"><h3>🏆 Top món bán chạy</h3></div>
-      ${topProd.map((p,i)=>`
+      ${topProd.length?topProd.map((p,i)=>`
         <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-          <span style="font-size:11px;font-weight:700;color:${['var(--amber)','var(--text2)','var(--text3)'][i]||'var(--text3)'};width:16px">#${i+1}</span>
-          <span style="font-size:18px">${p.image||'🍽️'}</span>
+          <span style="font-size:11px;font-weight:700;color:${['var(--amber)','var(--text2)','var(--text3)'][i]||'var(--text3)'};width:18px;text-align:center">#${i+1}</span>
+          <span style="font-size:18px">${p.image&&!p.image.startsWith('http')&&p.image.length<=2?p.image:p.image?'':'🍽️'}${p.image&&(p.image.startsWith('data:')||p.image.startsWith('http'))?`<img src="${p.image}" style="width:28px;height:28px;border-radius:5px;object-fit:cover;vertical-align:middle">`:''}</span>
           <div style="flex:1">
             <div style="font-size:13px;font-weight:500">${p.name}</div>
             <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" style="width:${Math.min(100,p.sold/(topProd[0]?.sold||1)*100)}%;background:var(--primary)"></div></div>
@@ -1517,27 +1873,71 @@ function renderReports() {
             <div style="font-size:12px;font-family:var(--mono);font-weight:700;color:var(--primary)">${fmtVnd(p.rev)}</div>
             <div style="font-size:11px;color:var(--text3)">${p.sold} bán</div>
           </div>
-        </div>`).join('')}
+        </div>`).join(''):'<div class="empty-state"><p>Không có dữ liệu</p></div>'}
     </div>
     <div class="card">
       <div class="section-header"><h3>💸 Chi phí theo danh mục</h3></div>
-      ${expenses.map(e=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+      ${expenses.length?expenses.map(e=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
         <span style="font-size:13px;color:var(--text2)">${e.category}</span>
         <div style="text-align:right">
           <div style="font-family:var(--mono);font-weight:600;color:var(--red)">${fmtVnd(e.total)}</div>
           <div style="font-size:11px;color:var(--text3)">${totalExp>0?Math.round(e.total/totalExp*100):0}%</div>
         </div>
-      </div>`).join('')||'<div class="empty-state"><p>Không có chi phí</p></div>'}
+      </div>`).join(''):'<div class="empty-state"><p>Không có chi phí</p></div>'}
     </div>
-  </div>`;
+  </div>
 
+  ${mode==='day'&&orderList.length?`
+  <div class="card" style="margin-top:0">
+    <div class="section-header"><h3>🧾 Danh sách đơn hàng — ${dateLabel}</h3><span style="font-size:12px;color:var(--text3)">${orderList.length} đơn</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Mã đơn</th><th>Khách</th><th>Món</th><th>Tổng tiền</th><th>Thanh toán</th><th>Giờ</th><th></th></tr></thead>
+      <tbody>${orderList.map(o=>`<tr onclick="showOrderDetail(${o.id})" style="cursor:pointer">
+        <td><span class="name" style="font-family:var(--mono);font-size:12px">${o.order_code}</span></td>
+        <td>${o.cust_name}</td>
+        <td style="color:var(--text3);font-size:12px">${(query('SELECT COUNT(*) as n FROM order_items WHERE order_id='+o.id)[0]||{n:0}).n} món</td>
+        <td style="font-family:var(--mono);color:var(--primary);font-weight:700">${fmtVnd(o.total)}</td>
+        <td><span class="tag ${o.payment_method==='cash'?'green':o.payment_method==='card'?'blue':'purple'}">${o.payment_method==='cash'?'Tiền mặt':o.payment_method==='card'?'Thẻ':'CK'}</span></td>
+        <td style="color:var(--text3);font-family:var(--mono)">${o.created_at.slice(11,16)}</td>
+        <td><button class="btn sm danger" onclick="event.stopPropagation();deleteOrder(${o.id},'${o.order_code}',${o.customer_id||0},${o.points_earned||0},${o.total})">🗑️</button></td>
+      </tr>`).join('')}
+      </tbody>
+    </table></div>
+  </div>`:''}`;
+
+  // Vẽ chart sau khi DOM ready
   setTimeout(()=>{
-    const labels=byDay.map(r=>new Date(r.day).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'}));
+    destroyCharts();
     const ctx1=document.getElementById('rptChart');
-    if(ctx1) new Chart(ctx1,{type:'line',data:{labels,datasets:[{label:'Doanh thu',data:byDay.map(r=>r.rev),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:0.4,pointRadius:3},{label:'Đơn hàng',data:byDay.map(r=>r.cnt*5000),borderColor:'#22c55e',backgroundColor:'transparent',tension:0.4,pointRadius:2,borderDash:[5,3]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8fa3bc',font:{size:11}}}},scales:{y:{ticks:{callback:v=>fmtK(v),color:'#5a7090'},grid:{color:'rgba(255,255,255,.04)'}},x:{ticks:{color:'#5a7090',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}}}}});
+    if(ctx1&&byPeriod.length){
+      const labels=byPeriod.map(r=>fmtLabel(r.period));
+      const revData=byPeriod.map(r=>r.rev||0);
+      const ordData=byPeriod.map(r=>(r.cnt||0)*Math.max(1,Math.round(totalRev/totalOrd||1)));
+      window._chart1=new Chart(ctx1,{type:'bar',data:{labels,datasets:[
+        {label:'Doanh thu',data:revData,backgroundColor:'rgba(59,130,246,.7)',borderColor:'#3b82f6',borderWidth:1,borderRadius:4,yAxisID:'y'},
+        {label:'Số đơn',data:byPeriod.map(r=>r.cnt||0),type:'line',borderColor:'#22c55e',backgroundColor:'transparent',tension:0.4,pointRadius:3,yAxisID:'y2'}
+      ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index'},plugins:{legend:{labels:{color:'#8fa3bc',font:{size:11}}}},scales:{y:{ticks:{callback:v=>fmtK(v),color:'#5a7090'},grid:{color:'rgba(255,255,255,.04)'},position:'left'},y2:{ticks:{color:'#22c55e',font:{size:10}},grid:{display:false},position:'right'},x:{ticks:{color:'#5a7090',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}}}}});
+    }
     const ctx2=document.getElementById('payChart');
-    if(ctx2&&byMethod.length) new Chart(ctx2,{type:'doughnut',data:{labels:byMethod.map(m=>m.payment_method==='cash'?'Tiền mặt':m.payment_method==='card'?'Thẻ':'Chuyển khoản'),datasets:[{data:byMethod.map(m=>m.rev),backgroundColor:['#22c55e','#3b82f6','#a855f7'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#8fa3bc',font:{size:11},padding:12}}}}});
+    if(ctx2&&byMethod.length){
+      window._chart2=new Chart(ctx2,{type:'doughnut',data:{labels:byMethod.map(m=>m.payment_method==='cash'?'Tiền mặt':m.payment_method==='card'?'Thẻ':'Chuyển khoản'),datasets:[{data:byMethod.map(m=>m.rev),backgroundColor:['#22c55e','#3b82f6','#a855f7'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#8fa3bc',font:{size:11},padding:12}}}}});
+    }
   },100);
+}
+
+function destroyCharts(){
+  if(window._chart1){try{window._chart1.destroy();}catch(e){}}
+  if(window._chart2){try{window._chart2.destroy();}catch(e){}}
+  window._chart1=null;window._chart2=null;
+}
+
+function switchRptMode(mode){
+  const map={day:'rpt-sel-day',month:'rpt-sel-month',year:'rpt-sel-year'};
+  // preserve existing values
+  const existing={};
+  ['rpt-sel-day','rpt-sel-month','rpt-sel-year'].forEach(id=>{const el=document.getElementById(id);if(el)existing[id]=el.value;});
+  window._rptMode=mode;window._rptVals=existing;
+  renderReports();
 }
 
 // ===================== EXPENSES =====================
@@ -1644,6 +2044,35 @@ function savePointSettings(){
   toast('Đã lưu cài đặt!','success');
 }
 
+function uploadQRCode(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const data=ev.target.result;
+    const wrap=document.getElementById('qr-preview-wrap');
+    if(wrap){wrap.innerHTML=`<img id="qr-preview-img" src="${data}" style="width:100%;height:100%;object-fit:contain">`;}
+    window._pendingQR=data;
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveQRSettings(){
+  const url=v('qr-url-input');
+  const img=window._pendingQR||url||'';
+  run(`INSERT OR REPLACE INTO settings VALUES ('qr_code_img',?)`,[img]);
+  run(`INSERT OR REPLACE INTO settings VALUES ('qr_bank_name',?)`,[v('qr-bank-name')]);
+  run(`INSERT OR REPLACE INTO settings VALUES ('qr_account',?)`,[v('qr-account')]);
+  window._pendingQR=null;
+  toast('Đã lưu QR thanh toán!','success');
+  renderSettings();
+}
+
+function clearQR(){
+  run(`INSERT OR REPLACE INTO settings VALUES ('qr_code_img','')`);
+  toast('Đã xóa QR','info');
+  renderSettings();
+}
+
 async function exportDB(){
   await saveDBNow();
   const buf=db.export();
@@ -1656,14 +2085,14 @@ async function clearAllData(){
   if(!confirm('⚠️ XÓA TOÀN BỘ DỮ LIỆU? Hành động này không thể hoàn tác!'))return;
   if(!confirm('Xác nhận lần nữa: Bạn thực sự muốn xóa tất cả?'))return;
   await idbClear();
-  localStorage.removeItem('pos_db_v2');
+  localStorage.removeItem('vjp_pos_v2');
   location.reload();
 }
 
 async function resetSeedData(){
   if(!confirm('Khôi phục về dữ liệu mẫu? Dữ liệu hiện tại sẽ bị mất!'))return;
   await idbClear();
-  localStorage.removeItem('pos_db_v2');
+  localStorage.removeItem('vjp_pos_v2');
   location.reload();
 }
 
@@ -1737,6 +2166,39 @@ function exportTableCSV(table){
 }
 
 // ===================== UTILS =====================
+
+// ── Theme ──
+function toggleTheme(){
+  const html=document.documentElement;
+  const isDark=html.getAttribute('data-theme')!=='light';
+  html.setAttribute('data-theme',isDark?'light':'dark');
+  localStorage.setItem('vjp_theme',isDark?'light':'dark');
+  updateThemeIcon(!isDark);
+}
+function updateThemeIcon(isDark){
+  const sun=document.getElementById('theme-icon-sun');
+  const moon=document.getElementById('theme-icon-moon');
+  if(sun) sun.style.display=isDark?'block':'none';
+  if(moon) moon.style.display=isDark?'none':'block';
+}
+function initTheme(){
+  const saved=localStorage.getItem('vjp_theme')||'dark';
+  document.documentElement.setAttribute('data-theme',saved);
+  updateThemeIcon(saved==='dark');
+}
+
+// ── Mobile sidebar ──
+function toggleSidebar(){
+  const sb=document.querySelector('.sidebar');
+  const ov=document.getElementById('sidebar-overlay');
+  const open=sb.classList.toggle('open');
+  ov.classList.toggle('show',open);
+}
+function closeSidebar(){
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+}
+
 function fmtVnd(n) { return new Intl.NumberFormat('vi-VN').format(Math.round(n||0))+'₫'; }
 function fmtK(n) { if(Math.abs(n)>=1000000) return (n/1000000).toFixed(1)+'tr'; if(Math.abs(n)>=1000) return Math.round(n/1000)+'k'; return Math.round(n)+'₫'; }
 function v(id) { const el=document.getElementById(id); return el?el.value:''; }
@@ -1760,12 +2222,12 @@ function showModal(html, size='') {
 
 function closeModal() { document.getElementById('modal-container').innerHTML=''; }
 
-function modalForm(title, formHTML, onSave) {
+function modalForm(title, formHTML, onSave, size='') {
   showModal(`<div class="modal-title">${title}</div>${formHTML}
     <div class="modal-footer">
       <button class="btn" onclick="closeModal()">Hủy</button>
       <button class="btn primary" onclick="if(window._modalSave()!==false)closeModal()">Lưu</button>
-    </div>`);
+    </div>`,size);
   window._modalSave = onSave;
 }
 
@@ -1791,10 +2253,12 @@ function globalSearch(q) {
 
 // ===================== INIT =====================
 initDB().then(()=>{
+  initTheme();
   document.querySelectorAll('.nav-item').forEach(n=>{
     n.addEventListener('click',function(){
       document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
       this.classList.add('active');
+      closeSidebar(); // đóng sidebar mobile khi chọn menu
     });
   });
 }).catch(e=>{
